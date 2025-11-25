@@ -35,7 +35,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                         borderRadius: BorderRadius.circular(12),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.3),
+                            color: Colors.black.withValues(alpha: 0.3),
                             blurRadius: 10,
                             offset: const Offset(0, 5),
                           ),
@@ -125,7 +125,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                     decoration: BoxDecoration(
                       color: Theme.of(
                         context,
-                      ).colorScheme.primary.withOpacity(0.1),
+                      ).colorScheme.primary.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Row(
@@ -211,7 +211,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
   Widget _buildGenreChip(String label) {
     return Chip(
       label: Text(label, style: const TextStyle(fontSize: 12)),
-      backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.2),
+      backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
       padding: EdgeInsets.zero,
       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
     );
@@ -380,7 +380,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                 radius: 20,
                 backgroundColor: Theme.of(
                   context,
-                ).colorScheme.primary.withOpacity(0.3),
+                ).colorScheme.primary.withValues(alpha: 0.3),
               ),
               const SizedBox(width: 12),
               Expanded(

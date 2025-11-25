@@ -61,7 +61,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                     filled: true,
                     fillColor: Theme.of(
                       context,
-                    ).colorScheme.primary.withOpacity(0.1),
+                    ).colorScheme.primary.withValues(alpha: 0.1),
                   ),
                 ),
               ),
@@ -103,8 +103,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            Theme.of(context).colorScheme.primary.withOpacity(0.7),
-            Theme.of(context).colorScheme.secondary.withOpacity(0.7),
+            Theme.of(context).colorScheme.primary.withValues(alpha: 0.7),
+            Theme.of(context).colorScheme.secondary.withValues(alpha: 0.7),
           ],
         ),
         borderRadius: BorderRadius.circular(12),

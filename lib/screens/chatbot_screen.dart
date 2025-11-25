@@ -29,7 +29,7 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
               radius: 20,
               backgroundColor: Theme.of(
                 context,
-              ).colorScheme.primary.withOpacity(0.3),
+              ).colorScheme.primary.withValues(alpha: 0.3),
               child: Icon(
                 Icons.smart_toy,
                 color: Theme.of(context).colorScheme.primary,
@@ -75,7 +75,7 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
               radius: 16,
               backgroundColor: Theme.of(
                 context,
-              ).colorScheme.primary.withOpacity(0.3),
+              ).colorScheme.primary.withValues(alpha: 0.3),
               child: Icon(
                 Icons.smart_toy,
                 size: 16,
@@ -111,7 +111,7 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
               radius: 16,
               backgroundColor: Theme.of(
                 context,
-              ).colorScheme.secondary.withOpacity(0.3),
+              ).colorScheme.secondary.withValues(alpha: 0.3),
               child: Icon(
                 Icons.person,
                 size: 16,
@@ -221,9 +221,9 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
         onPressed: () {
           _sendMessage(label);
         },
-        backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+        backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
         side: BorderSide(
-          color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
         ),
       ),
     );
@@ -236,7 +236,7 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
         color: isDark ? const Color(0xFF1F2C34) : Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 10,
             offset: const Offset(0, -5),
           ),

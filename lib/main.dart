@@ -1,7 +1,6 @@
 import 'package:booknest/screens/main_navigation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'screens/onboarding/welcome_screen.dart';
 
 void main() {
   runApp(const BookNestApp());
@@ -39,7 +38,6 @@ class BookNestApp extends StatelessWidget {
               primary: const Color(0xFF2D7A7B),
               secondary: const Color(0xFF5BA9AA),
               surface: const Color(0xFF1A2730),
-              background: const Color(0xFF1A2730),
             ),
         textTheme: GoogleFonts.crimsonProTextTheme(ThemeData.dark().textTheme),
         scaffoldBackgroundColor: const Color(0xFF1A2730),

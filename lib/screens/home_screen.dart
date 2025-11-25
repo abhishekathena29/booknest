@@ -21,7 +21,7 @@ class HomeScreen extends StatelessWidget {
                       radius: 24,
                       backgroundColor: Theme.of(
                         context,
-                      ).colorScheme.primary.withOpacity(0.2),
+                      ).colorScheme.primary.withValues(alpha: 0.2),
                       child: Icon(
                         Icons.person,
                         color: Theme.of(context).colorScheme.primary,
@@ -106,8 +106,8 @@ class HomeScreen extends StatelessWidget {
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
-                      Theme.of(context).colorScheme.primary.withOpacity(0.2),
-                      Theme.of(context).colorScheme.secondary.withOpacity(0.2),
+                      Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
+                      Theme.of(context).colorScheme.secondary.withValues(alpha: 0.2),
                     ],
                   ),
                   borderRadius: BorderRadius.circular(16),
@@ -239,7 +239,7 @@ class HomeScreen extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.2),
+                    color: Colors.black.withValues(alpha: 0.2),
                     blurRadius: 8,
                     offset: const Offset(0, 4),
                   ),
@@ -319,7 +319,7 @@ class HomeScreen extends StatelessWidget {
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.2),
+                  color: Colors.black.withValues(alpha: 0.2),
                   blurRadius: 8,
                   offset: const Offset(0, 4),
                 ),
@@ -328,6 +328,7 @@ class HomeScreen extends StatelessWidget {
             child: Center(
               child: Text(
                 book['title'] as String,
+              
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   color: Colors.white,
@@ -341,7 +342,7 @@ class HomeScreen extends StatelessWidget {
           Text(
             book['title'] as String,
             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-            maxLines: 2,
+            maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
           Text(
@@ -395,7 +396,7 @@ class HomeScreen extends StatelessWidget {
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.2),
+                  color: Colors.black.withValues(alpha: 0.2),
                   blurRadius: 8,
                   offset: const Offset(0, 4),
                 ),

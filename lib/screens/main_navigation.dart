@@ -33,7 +33,7 @@ class _MainNavigationState extends State<MainNavigation> {
         decoration: BoxDecoration(
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
+              color: Colors.black.withValues(alpha: 0.1),
               blurRadius: 10,
               offset: const Offset(0, -5),
             ),
@@ -48,8 +48,8 @@ class _MainNavigationState extends State<MainNavigation> {
           },
           backgroundColor: isDark ? const Color(0xFF1F2C34) : Colors.white,
           indicatorColor: isDark
-              ? const Color(0xFF2D7A7B).withOpacity(0.3)
-              : const Color(0xFFD2691E).withOpacity(0.2),
+              ? const Color(0xFF2D7A7B).withValues(alpha: 0.3)
+              : const Color(0xFFD2691E).withValues(alpha: 0.2),
           destinations: [
             NavigationDestination(
               icon: Icon(

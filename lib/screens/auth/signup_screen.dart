@@ -1,4 +1,6 @@
+import 'package:booknest/screens/auth/provider/auth_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'login_screen.dart';
 import '../onboarding/genre_selection_screen.dart';
 
@@ -164,27 +166,44 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 ),
               ),
               const SizedBox(height: 32),
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const GenreSelectionScreen(),
+              Consumer<AuthProvider>(
+                builder: (context, authProvider, child) {
+                  return authProvider.loading ? const CircularProgressIndicator() : ElevatedButton(
+                    onPressed: () async {
+                      // code of sign up function then navigate to genre selection screen
+                      final user = await authProvider.signUpWithEmailAndPassword(_emailController.text, _passwordController.text);
+                      if (context.mounted) {
+                      if (user) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const GenreSelectionScreen(),
+                          ),
+                        );
+                      }else{
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(authProvider.error ?? 'Something went wrong'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF3BA1C7),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text(
+                      'Create Account',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                     ),
                   );
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF3BA1C7),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: const Text(
-                  'Create Account',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
+                }
               ),
               const SizedBox(height: 32),
               Row(

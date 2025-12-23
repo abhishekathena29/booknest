@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
@@ -27,7 +28,10 @@ class AuthProvider extends ChangeNotifier {
   Future<bool> signInWithEmailAndPassword(String email, String password) async {
     setLoading(true);
     try {
-      final userCredential =  await _auth.signInWithEmailAndPassword(email: email, password: password);
+      final userCredential = await _auth.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
       if (userCredential.user != null) {
         print('Sign in successful');
         return true;
@@ -41,11 +45,19 @@ class AuthProvider extends ChangeNotifier {
       setLoading(false);
     }
   }
+
   Future<bool> signUpWithEmailAndPassword(String email, String password) async {
     setLoading(true);
     try {
-     final userCredential = await _auth.createUserWithEmailAndPassword(email: email, password: password);
+      final userCredential = await _auth.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
       if (userCredential.user != null) {
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(userCredential.user!.uid)
+            .set({'email': email, 'createdAt': Timestamp.now()});
         print('Sign up successful');
         return true;
       }
@@ -57,7 +69,7 @@ class AuthProvider extends ChangeNotifier {
     } finally {
       setLoading(false);
     }
-  } 
+  }
 
   Future<void> signOut() async {
     await _auth.signOut();

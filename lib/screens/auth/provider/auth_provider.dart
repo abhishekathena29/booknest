@@ -46,7 +46,8 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> signUpWithEmailAndPassword(String email, String password) async {
+  Future<bool> signUpWithEmailAndPassword(
+      String email, String password, String username) async {
     setLoading(true);
     try {
       final userCredential = await _auth.createUserWithEmailAndPassword(
@@ -54,10 +55,15 @@ class AuthProvider extends ChangeNotifier {
         password: password,
       );
       if (userCredential.user != null) {
+        await userCredential.user!.updateDisplayName(username);
         await FirebaseFirestore.instance
             .collection('users')
             .doc(userCredential.user!.uid)
-            .set({'email': email, 'createdAt': Timestamp.now()});
+            .set({
+          'email': email,
+          'username': username,
+          'createdAt': Timestamp.now(),
+        });
         print('Sign up successful');
         return true;
       }

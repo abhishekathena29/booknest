@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'book_detail_screen.dart';
 import 'chatbot_screen.dart';
 
@@ -7,6 +8,8 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final username =
+        FirebaseAuth.instance.currentUser?.displayName ?? 'Reader';
     return Scaffold(
       body: SafeArea(
         child: CustomScrollView(
@@ -28,10 +31,10 @@ class HomeScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 12),
-                    const Expanded(
+                    Expanded(
                       child: Text(
-                        'For You, Alex',
-                        style: TextStyle(
+                        'For You, $username',
+                        style: const TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
                         ),

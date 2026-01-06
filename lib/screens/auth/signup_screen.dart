@@ -2,7 +2,7 @@ import 'package:booknest/screens/auth/provider/auth_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'login_screen.dart';
-import '../onboarding/genre_selection_screen.dart';
+import '../onboarding/onboarding_screen.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -199,24 +199,26 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           onPressed: () async {
                             final user = await authProvider
                                 .signUpWithEmailAndPassword(
-                              _emailController.text,
-                              _passwordController.text,
-                              _usernameController.text,
-                            );
+                                  _emailController.text,
+                                  _passwordController.text,
+                                  _usernameController.text,
+                                );
                             if (context.mounted) {
                               if (user) {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
                                     builder: (context) =>
-                                        const GenreSelectionScreen(),
+                                        const OnboardingScreen(),
                                   ),
                                 );
                               } else {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
-                                    content: Text(authProvider.error ??
-                                        'Something went wrong'),
+                                    content: Text(
+                                      authProvider.error ??
+                                          'Something went wrong',
+                                    ),
                                     backgroundColor: Colors.red,
                                   ),
                                 );
@@ -234,10 +236,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           child: const Text(
                             'Create Account',
                             style: TextStyle(
-                                fontSize: 16, fontWeight: FontWeight.bold),
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         );
-                }
+                },
               ),
               const SizedBox(height: 32),
               Row(

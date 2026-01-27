@@ -1,18 +1,21 @@
 import 'package:booknest/firebase_options.dart';
 import 'package:booknest/screens/auth/provider/auth_provider.dart';
-import 'package:booknest/screens/onboarding/onboarding_screen.dart';
 import 'package:booknest/screens/welcome/welcome_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:booknest/screens/community/provider/forum_provider.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   runApp(
     MultiProvider(
-      providers: [ChangeNotifierProvider(create: (context) => AuthProvider())],
+      providers: [
+        ChangeNotifierProvider(create: (context) => AuthProvider()),
+        ChangeNotifierProvider(create: (context) => ForumProvider()),
+      ],
       child: const BookNestApp(),
     ),
   );

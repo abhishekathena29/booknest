@@ -14,13 +14,56 @@ class RecommendationResult {
 }
 
 class BookRepository {
+  /// Cached book list to avoid re-parsing CSV on every access.
+  List<Book>? _cachedBooks;
+
+  /// Get cached books or load from assets.
+  Future<List<Book>> getBooks() async {
+    _cachedBooks ??= await loadBooksFromAssets('assets/TRAIN_balanced.csv');
+    return _cachedBooks!;
+  }
+
+  /// Search books by title, author, or genre (case-insensitive).
+  List<Book> searchBooks(String query, List<Book> books) {
+    if (query.trim().isEmpty) return books;
+    final lower = query.toLowerCase();
+    return books.where((book) {
+      return book.title.toLowerCase().contains(lower) ||
+          book.author.toLowerCase().contains(lower) ||
+          book.subjects.any((s) => s.toLowerCase().contains(lower));
+    }).toList();
+  }
+
+  /// Filter books by a specific genre/subject.
+  List<Book> filterByGenre(String genre, List<Book> books) {
+    final lower = genre.toLowerCase();
+    return books
+        .where(
+          (book) => book.subjects.any((s) => s.toLowerCase().contains(lower)),
+        )
+        .toList();
+  }
+
+  /// Get all unique genres from the book list.
+  Set<String> allGenres(List<Book> books) {
+    final genres = <String>{};
+    for (final book in books) {
+      for (final subject in book.subjects) {
+        final trimmed = subject.trim();
+        if (trimmed.isNotEmpty) genres.add(trimmed);
+      }
+    }
+    return genres;
+  }
+
   Future<List<Book>> loadBooksFromAssets(String assetPath) async {
     final csvData = await rootBundle.loadString(assetPath);
     final rows = const CsvToListConverter().convert(csvData);
     if (rows.isEmpty) return [];
 
-    final headers =
-        rows.first.map((header) => header.toString().trim()).toList();
+    final headers = rows.first
+        .map((header) => header.toString().trim())
+        .toList();
     final headerIndex = <String, int>{};
     for (var i = 0; i < headers.length; i++) {
       headerIndex[headers[i]] = i;
@@ -53,7 +96,7 @@ class BookRepository {
 
       books.add(
         Book(
-          id: '${title}_${author}'.replaceAll(' ', '_'),
+          id: '${title}_$author'.replaceAll(' ', '_'),
           title: title,
           author: author.isEmpty ? 'Unknown' : author,
           subjects: _splitSubjects(category),
@@ -66,6 +109,7 @@ class BookRepository {
         ),
       );
     }
+    _cachedBooks = books;
     return books;
   }
 
@@ -75,14 +119,17 @@ class BookRepository {
     required double confidence,
     required List<String> interests,
   }) {
-    final comfortStage =
-        confidence < 0.55 ? shiftKeyStage(userKeyStage, -1) : userKeyStage;
-    final stretchStage =
-        confidence >= 0.6 ? shiftKeyStage(userKeyStage, 1) : null;
+    final comfortStage = confidence < 0.55
+        ? shiftKeyStage(userKeyStage, -1)
+        : userKeyStage;
+    final stretchStage = confidence >= 0.6
+        ? shiftKeyStage(userKeyStage, 1)
+        : null;
 
     final comfort = _filterByStage(books, comfortStage, interests);
-    final stretch =
-        stretchStage == null ? <Book>[] : _filterByStage(books, stretchStage, interests);
+    final stretch = stretchStage == null
+        ? <Book>[]
+        : _filterByStage(books, stretchStage, interests);
 
     _rankBooks(comfort, userKeyStage, interests);
     _rankBooks(stretch, userKeyStage, interests);
@@ -95,8 +142,9 @@ class BookRepository {
     String stage,
     List<String> interests,
   ) {
-    final normalizedInterests =
-        interests.map((interest) => interest.toLowerCase()).toList();
+    final normalizedInterests = interests
+        .map((interest) => interest.toLowerCase())
+        .toList();
     return books.where((book) {
       if (normalizeKeyStage(book.keyStage) != stage) return false;
       if (normalizedInterests.isEmpty) return true;
@@ -112,14 +160,17 @@ class BookRepository {
     String userKeyStage,
     List<String> interests,
   ) {
-    final normalizedInterests =
-        interests.map((interest) => interest.toLowerCase()).toList();
+    final normalizedInterests = interests
+        .map((interest) => interest.toLowerCase())
+        .toList();
     books.sort((a, b) {
       final userStageIndex = keyStageIndex(userKeyStage) ?? 1;
       final stageDistanceA =
-          ((keyStageIndex(a.keyStage) ?? userStageIndex) - userStageIndex).abs();
+          ((keyStageIndex(a.keyStage) ?? userStageIndex) - userStageIndex)
+              .abs();
       final stageDistanceB =
-          ((keyStageIndex(b.keyStage) ?? userStageIndex) - userStageIndex).abs();
+          ((keyStageIndex(b.keyStage) ?? userStageIndex) - userStageIndex)
+              .abs();
       if (stageDistanceA != stageDistanceB) {
         return stageDistanceA.compareTo(stageDistanceB);
       }
@@ -142,8 +193,7 @@ class BookRepository {
 
   double _subjectSimilarity(List<String> subjects, List<String> interests) {
     if (interests.isEmpty) return 0;
-    final subjectSet =
-        subjects.map((subject) => subject.toLowerCase()).toSet();
+    final subjectSet = subjects.map((subject) => subject.toLowerCase()).toSet();
     var matches = 0;
     for (final interest in interests) {
       if (subjectSet.contains(interest)) {

@@ -20,25 +20,26 @@ class AuthProvider extends ChangeNotifier {
 
   String? get error => _error;
 
-  void setError(String value) {
+  void setError(String? value) {
     _error = value;
     notifyListeners();
   }
 
   Future<bool> signInWithEmailAndPassword(String email, String password) async {
     setLoading(true);
+    setError(null);
     try {
       final userCredential = await _auth.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
       if (userCredential.user != null) {
-        print('Sign in successful');
+        debugPrint('Sign in successful');
         return true;
       }
       return false;
     } catch (e) {
-      print(e);
+      debugPrint(e.toString());
       setError(e.toString());
       return false;
     } finally {
@@ -47,8 +48,12 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<bool> signUpWithEmailAndPassword(
-      String email, String password, String username) async {
+    String email,
+    String password,
+    String username,
+  ) async {
     setLoading(true);
+    setError(null);
     try {
       final userCredential = await _auth.createUserWithEmailAndPassword(
         email: email,
@@ -60,16 +65,17 @@ class AuthProvider extends ChangeNotifier {
             .collection('users')
             .doc(userCredential.user!.uid)
             .set({
-          'email': email,
-          'username': username,
-          'createdAt': Timestamp.now(),
-        });
-        print('Sign up successful');
+              'email': email,
+              'username': username,
+              'createdAt': Timestamp.now(),
+              'onboarding_completed': false,
+            });
+        debugPrint('Sign up successful');
         return true;
       }
       return false;
     } catch (e) {
-      print(e);
+      debugPrint(e.toString());
       setError(e.toString());
       return false;
     } finally {

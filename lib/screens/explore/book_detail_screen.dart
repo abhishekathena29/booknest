@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../models/book.dart';
+import '../../services/library_service.dart';
 
 class BookDetailScreen extends StatefulWidget {
-  const BookDetailScreen({super.key});
+  const BookDetailScreen({super.key, required this.book});
+
+  final Book book;
 
   @override
   State<BookDetailScreen> createState() => _BookDetailScreenState();
@@ -9,9 +14,46 @@ class BookDetailScreen extends StatefulWidget {
 
 class _BookDetailScreenState extends State<BookDetailScreen> {
   int _selectedTab = 0;
+  BookShelf? _currentShelf;
+  bool _loadingShelf = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCurrentShelf();
+  }
+
+  Future<void> _loadCurrentShelf() async {
+    final libraryService = context.read<LibraryService>();
+    final shelf = await libraryService.getBookShelf(widget.book.id);
+    if (mounted) {
+      setState(() {
+        _currentShelf = shelf;
+        _loadingShelf = false;
+      });
+    }
+  }
+
+  Future<void> _addToShelf(BookShelf shelf) async {
+    final libraryService = context.read<LibraryService>();
+    await libraryService.addToLibrary(widget.book, shelf);
+    if (mounted) {
+      setState(() => _currentShelf = shelf);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Added to ${shelf.label}'),
+          backgroundColor: Theme.of(context).colorScheme.primary,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final book = widget.book;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
       body: CustomScrollView(
         slivers: [
@@ -23,33 +65,63 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
             ],
             flexibleSpace: FlexibleSpaceBar(
               background: Container(
-                color: Colors.grey[200],
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      book.displayColor,
+                      book.displayColor.withValues(alpha: 0.7),
+                    ],
+                  ),
+                ),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
+                    const SizedBox(height: 40),
                     Container(
                       width: 150,
                       height: 220,
                       decoration: BoxDecoration(
-                        color: const Color(0xFF1A2730),
+                        color: book.displayColor.withValues(alpha: 0.9),
                         borderRadius: BorderRadius.circular(12),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.3),
-                            blurRadius: 10,
-                            offset: const Offset(0, 5),
+                            color: Colors.black.withValues(alpha: 0.4),
+                            blurRadius: 20,
+                            offset: const Offset(0, 8),
                           ),
                         ],
                       ),
-                      child: const Center(
-                        child: Text(
-                          'The Midnight\nLibrary',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              book.title,
+                              textAlign: TextAlign.center,
+                              maxLines: 4,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                height: 1.2,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              book.author,
+                              textAlign: TextAlign.center,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.8),
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
@@ -65,129 +137,184 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'The Midnight Library',
+                    book.title,
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'by Matt Haig',
+                    'by ${book.author}',
                     style: TextStyle(color: Colors.grey[600], fontSize: 16),
                   ),
                   const SizedBox(height: 12),
+                  // Rating stars
                   Row(
                     children: [
-                      Icon(
-                        Icons.star,
-                        color: Theme.of(context).colorScheme.primary,
-                        size: 20,
-                      ),
-                      Icon(
-                        Icons.star,
-                        color: Theme.of(context).colorScheme.primary,
-                        size: 20,
-                      ),
-                      Icon(
-                        Icons.star,
-                        color: Theme.of(context).colorScheme.primary,
-                        size: 20,
-                      ),
-                      Icon(
-                        Icons.star,
-                        color: Theme.of(context).colorScheme.primary,
-                        size: 20,
-                      ),
-                      Icon(
-                        Icons.star_half,
-                        color: Theme.of(context).colorScheme.primary,
-                        size: 20,
-                      ),
+                      ...List.generate(5, (i) {
+                        final fullStars = book.rating.floor();
+                        final hasHalf = (book.rating - fullStars) >= 0.3;
+                        if (i < fullStars) {
+                          return Icon(
+                            Icons.star,
+                            color: Theme.of(context).colorScheme.primary,
+                            size: 20,
+                          );
+                        } else if (i == fullStars && hasHalf) {
+                          return Icon(
+                            Icons.star_half,
+                            color: Theme.of(context).colorScheme.primary,
+                            size: 20,
+                          );
+                        } else {
+                          return Icon(
+                            Icons.star_border,
+                            color: Colors.grey[400],
+                            size: 20,
+                          );
+                        }
+                      }),
                       const SizedBox(width: 8),
                       Text(
-                        '4.1 (12,483 ratings)',
-                        style: TextStyle(color: Colors.grey[600]),
+                        book.rating.toStringAsFixed(1),
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 16),
-                  Wrap(
-                    spacing: 8,
-                    children: [
-                      _buildGenreChip('Fantasy'),
-                      _buildGenreChip('Fiction'),
-                      _buildGenreChip('450 pages'),
-                    ],
-                  ),
+                  // Subject chips
+                  if (book.subjects.isNotEmpty)
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        ...book.subjects.take(4).map((s) => _buildGenreChip(s)),
+                        _buildGenreChip(book.keyStage),
+                      ],
+                    ),
                   const SizedBox(height: 16),
+                  // Reading band info
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
                       color: Theme.of(
                         context,
-                      ).colorScheme.primary.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(8),
+                      ).colorScheme.primary.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(12),
                     ),
                     child: Row(
                       children: [
                         Icon(
-                          Icons.lightbulb_outline,
+                          Icons.auto_stories_outlined,
                           color: Theme.of(context).colorScheme.primary,
                           size: 20,
                         ),
                         const SizedBox(width: 8),
-                        const Expanded(
+                        Expanded(
                           child: Text(
-                            'Recommended for you based on your love for epic world-building',
-                            style: TextStyle(fontSize: 13),
+                            'Reading band: ${book.keyStage}  •  Lexile: ${book.lexileBandMin}–${book.lexileBandMax}L',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: isDark ? Colors.white70 : Colors.grey[700],
+                            ),
                           ),
                         ),
                       ],
                     ),
                   ),
                   const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () {},
-                          style: OutlinedButton.styleFrom(
-                            side: BorderSide(
-                              color: Theme.of(context).colorScheme.primary,
+                  // Action buttons
+                  if (_loadingShelf)
+                    const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(8.0),
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    )
+                  else
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: _currentShelf == BookShelf.wantToRead
+                                ? null
+                                : () => _addToShelf(BookShelf.wantToRead),
+                            icon: Icon(
+                              _currentShelf == BookShelf.wantToRead
+                                  ? Icons.bookmark
+                                  : Icons.bookmark_border,
+                              size: 18,
                             ),
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
+                            label: Text(
+                              _currentShelf == BookShelf.wantToRead
+                                  ? 'On Shelf'
+                                  : 'Add to Shelf',
+                            ),
+                            style: OutlinedButton.styleFrom(
+                              side: BorderSide(
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
                             ),
                           ),
-                          child: const Text('Add to My Shelf'),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: () {},
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Theme.of(
-                              context,
-                            ).colorScheme.primary,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: _currentShelf == BookShelf.finished
+                                ? null
+                                : () => _addToShelf(BookShelf.finished),
+                            icon: Icon(
+                              _currentShelf == BookShelf.finished
+                                  ? Icons.check_circle
+                                  : Icons.check_circle_outline,
+                              size: 18,
+                            ),
+                            label: Text(
+                              _currentShelf == BookShelf.finished
+                                  ? 'Finished'
+                                  : 'Mark as Read',
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Theme.of(
+                                context,
+                              ).colorScheme.primary,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
                             ),
                           ),
-                          child: const Text('Mark as Read'),
+                        ),
+                      ],
+                    ),
+                  if (_currentShelf != null &&
+                      _currentShelf != BookShelf.currentlyReading)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Center(
+                        child: TextButton.icon(
+                          onPressed: () =>
+                              _addToShelf(BookShelf.currentlyReading),
+                          icon: const Icon(Icons.menu_book, size: 16),
+                          label: const Text('Start Reading'),
                         ),
                       ),
-                    ],
-                  ),
+                    ),
                   const SizedBox(height: 24),
+                  // Tabs
                   Row(
                     children: [
-                      _buildTabButton('Summary', 0),
+                      _buildTabButton('About', 0),
                       _buildTabButton('Reviews', 1),
-                      _buildTabButton('Discussions', 2),
+                      _buildTabButton('Similar', 2),
                     ],
                   ),
                   const SizedBox(height: 16),
@@ -195,25 +322,29 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
               ),
             ),
           ),
-          if (_selectedTab == 0) ..._buildSummaryContent(),
+          if (_selectedTab == 0) ..._buildAboutContent(book, isDark),
           if (_selectedTab == 1) ..._buildReviewsContent(),
-          if (_selectedTab == 2) ..._buildDiscussionsContent(),
+          if (_selectedTab == 2) ..._buildSimilarContent(),
         ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {},
-        backgroundColor: Theme.of(context).colorScheme.primary,
-        child: const Icon(Icons.chat_bubble_outline, color: Colors.white),
       ),
     );
   }
 
   Widget _buildGenreChip(String label) {
-    return Chip(
-      label: Text(label, style: const TextStyle(fontSize: 12)),
-      backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
-      padding: EdgeInsets.zero,
-      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+          color: Theme.of(context).colorScheme.primary,
+        ),
+      ),
     );
   }
 
@@ -221,11 +352,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
     final isSelected = _selectedTab == index;
     return Expanded(
       child: GestureDetector(
-        onTap: () {
-          setState(() {
-            _selectedTab = index;
-          });
-        },
+        onTap: () => setState(() => _selectedTab = index),
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 12),
           decoration: BoxDecoration(
@@ -253,7 +380,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
     );
   }
 
-  List<Widget> _buildSummaryContent() {
+  List<Widget> _buildAboutContent(Book book, bool isDark) {
     return [
       SliverToBoxAdapter(
         child: Padding(
@@ -261,21 +388,65 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Somewhere out beyond the edge of the universe there is a library that contains an infinite number of books, each one the story of another reality. One tells the story of your life as it is, along with another book for the other life you could have lived if you had made a different choice at any point in your life. While all wonder how our lives might have been, what if you had the chance to go to the library and see for yourself? Would any of these other lives truly be better?',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey[700],
-                  height: 1.5,
+              if (book.description.isNotEmpty) ...[
+                Text(
+                  book.description.length > 400
+                      ? '${book.description.substring(0, 400)}...'
+                      : book.description,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: isDark ? Colors.white70 : Colors.grey[700],
+                    height: 1.6,
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
+              // Book stats
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.primary.withValues(alpha: 0.06),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    _buildStat('Rating', book.rating.toStringAsFixed(1)),
+                    Container(width: 1, height: 30, color: Colors.grey[300]),
+                    _buildStat('Band', book.keyStage),
+                    Container(width: 1, height: 30, color: Colors.grey[300]),
+                    _buildStat(
+                      'Lexile',
+                      '${book.lexileBandMin}–${book.lexileBandMax}',
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 16),
-              TextButton(onPressed: () {}, child: const Text('Read More')),
+              const SizedBox(height: 24),
             ],
           ),
         ),
       ),
     ];
+  }
+
+  Widget _buildStat(String label, String value) {
+    return Column(
+      children: [
+        Text(
+          value,
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+            color: Theme.of(context).colorScheme.primary,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(label, style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+      ],
+    );
   }
 
   List<Widget> _buildReviewsContent() {
@@ -283,31 +454,33 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
       SliverToBoxAdapter(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
-          child: Text(
-            'Reviews',
-            style: Theme.of(
-              context,
-            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-          ),
-        ),
-      ),
-      SliverList(
-        delegate: SliverChildBuilderDelegate((context, index) {
-          return _buildReviewCard(index);
-        }, childCount: 2),
-      ),
-      SliverToBoxAdapter(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
           child: Column(
             children: [
-              const Text(
-                'No more reviews yet. Be the first to share your thoughts!',
-                style: TextStyle(color: Colors.grey),
+              Icon(
+                Icons.rate_review_outlined,
+                size: 48,
+                color: Colors.grey[400],
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'No reviews yet',
+                style: TextStyle(
+                  color: Colors.grey[600],
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Be the first to share your thoughts on this book!',
+                style: TextStyle(color: Colors.grey[500], fontSize: 14),
+                textAlign: TextAlign.center,
               ),
               const SizedBox(height: 16),
-              ElevatedButton(
+              ElevatedButton.icon(
                 onPressed: () {},
+                icon: const Icon(Icons.edit, size: 18),
+                label: const Text('Write a Review'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Theme.of(context).colorScheme.primary,
                   foregroundColor: Colors.white,
@@ -315,8 +488,10 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                     horizontal: 24,
                     vertical: 12,
                   ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
-                child: const Text('Write a Review'),
               ),
             ],
           ),
@@ -325,141 +500,33 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
     ];
   }
 
-  List<Widget> _buildDiscussionsContent() {
+  List<Widget> _buildSimilarContent() {
     return [
       SliverToBoxAdapter(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
-          child: Text(
-            'Discussions',
-            style: Theme.of(
-              context,
-            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-          ),
-        ),
-      ),
-      SliverList(
-        delegate: SliverChildBuilderDelegate((context, index) {
-          return _buildDiscussionCard(index);
-        }, childCount: 3),
-      ),
-    ];
-  }
-
-  Widget _buildReviewCard(int index) {
-    final reviews = [
-      {
-        'name': 'Eleanor Vance',
-        'rating': 5,
-        'review':
-            'An absolutely beautiful and life-affirming book. It made me reflect on my own choices and the what-ifs. In a much more positive light. A must-read!',
-      },
-      {
-        'name': 'Marcus Cole',
-        'rating': 3,
-        'review':
-            'I can see why you\'d like this, based on our shared love for philosophical fiction. The concept was fascinating, though I found the ending a bit predictable.',
-      },
-    ];
-
-    final review = reviews[index];
-
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey[300]!),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+          child: Column(
             children: [
-              CircleAvatar(
-                radius: 20,
-                backgroundColor: Theme.of(
-                  context,
-                ).colorScheme.primary.withValues(alpha: 0.3),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      review['name'] as String,
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    Row(
-                      children: List.generate(5, (starIndex) {
-                        return Icon(
-                          starIndex < (review['rating'] as int)
-                              ? Icons.star
-                              : Icons.star_border,
-                          size: 16,
-                          color: Theme.of(context).colorScheme.primary,
-                        );
-                      }),
-                    ),
-                  ],
+              Icon(Icons.explore_outlined, size: 48, color: Colors.grey[400]),
+              const SizedBox(height: 12),
+              Text(
+                'Similar books coming soon',
+                style: TextStyle(
+                  color: Colors.grey[600],
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
                 ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'We\'re working on finding books similar to "${widget.book.title}"',
+                style: TextStyle(color: Colors.grey[500], fontSize: 14),
+                textAlign: TextAlign.center,
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          Text(
-            review['review'] as String,
-            style: TextStyle(color: Colors.grey[700]),
-          ),
-        ],
+        ),
       ),
-    );
-  }
-
-  Widget _buildDiscussionCard(int index) {
-    final discussions = [
-      {'title': 'Ending Theories & Spoilers', 'replies': '38 replies'},
-      {'title': 'Character Analysis: Nora Seed', 'replies': '19 replies'},
-      {'title': 'Spoiler-Free Q&A for New Readers', 'replies': '9 replies'},
     ];
-
-    final discussion = discussions[index];
-
-    return InkWell(
-      onTap: () {},
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          border: Border.all(color: Colors.grey[300]!),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    discussion['title'] as String,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    discussion['replies'] as String,
-                    style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                  ),
-                ],
-              ),
-            ),
-            const Icon(Icons.chevron_right),
-          ],
-        ),
-      ),
-    );
   }
 }

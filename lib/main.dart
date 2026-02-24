@@ -1,6 +1,7 @@
 import 'package:booknest/firebase_options.dart';
 import 'package:booknest/screens/auth/provider/auth_provider.dart';
 import 'package:booknest/screens/welcome/welcome_screen.dart';
+import 'package:booknest/services/library_service.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -15,6 +16,7 @@ Future<void> main() async {
       providers: [
         ChangeNotifierProvider(create: (context) => AuthProvider()),
         ChangeNotifierProvider(create: (context) => ForumProvider()),
+        ChangeNotifierProvider(create: (context) => LibraryService()),
       ],
       child: const BookNestApp(),
     ),

@@ -1,5 +1,10 @@
-import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../services/library_service.dart';
+import '../auth/provider/auth_provider.dart' as app_auth;
+import '../welcome/welcome_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -8,333 +13,107 @@ class ProfileScreen extends StatefulWidget {
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> {
-  int _selectedTab = 0;
-  bool _pushNotifications = true;
+class _ProfileScreenState extends State<ProfileScreen>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 3, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final username =
-        FirebaseAuth.instance.currentUser?.displayName ?? 'Reader';
 
     return Scaffold(
-      body: SafeArea(
-        child: CustomScrollView(
-          slivers: [
-            SliverAppBar(
-              floating: true,
-              title: const Text(
-                'Profile',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              actions: [
-                IconButton(icon: const Icon(Icons.more_vert), onPressed: () {}),
-              ],
-            ),
-            SliverToBoxAdapter(
-              child: Column(
-                children: [
-                  const SizedBox(height: 20),
-                  CircleAvatar(
-                    radius: 50,
-                    backgroundColor: Theme.of(
-                      context,
-                    ).colorScheme.primary.withValues(alpha: 0.3),
-                    child: Icon(
-                      Icons.person,
-                      size: 50,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    username,
-                    style: const TextStyle(
-                        fontSize: 24, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '25 books read this year',
-                    style: TextStyle(color: Colors.grey[600], fontSize: 14),
-                  ),
-                  Text(
-                    'Favorite Genre: Sci-Fi',
-                    style: TextStyle(color: Colors.grey[600], fontSize: 14),
-                  ),
-                  const SizedBox(height: 20),
-                ],
-              ),
-            ),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Row(
-                  children: [
-                    _buildTabButton('My Library', 0),
-                    _buildTabButton('AI Preferences', 1),
-                    _buildTabButton('Settings', 2),
-                  ],
-                ),
-              ),
-            ),
-            const SliverToBoxAdapter(child: SizedBox(height: 20)),
-            if (_selectedTab == 0) ..._buildLibraryContent(),
-            if (_selectedTab == 1) ..._buildPreferencesContent(),
-            if (_selectedTab == 2) ..._buildSettingsContent(isDark),
-          ],
+      appBar: AppBar(
+        title: const Text(
+          'Profile',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24),
         ),
+        centerTitle: false,
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings_outlined),
+            onPressed: () => _showSettingsSheet(context),
+          ),
+        ],
       ),
+      body: user == null
+          ? const Center(child: Text('Please sign in'))
+          : StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+              stream: FirebaseFirestore.instance
+                  .collection('users')
+                  .doc(user.uid)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                final userData = snapshot.data?.data() ?? {};
+
+                return SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      // Profile header
+                      _buildProfileHeader(context, user, userData, isDark),
+                      const SizedBox(height: 20),
+                      // Stats Row
+                      _buildStatsRow(context, isDark),
+                      const SizedBox(height: 24),
+                      // Tabs
+                      _buildTabs(context, userData, isDark),
+                    ],
+                  ),
+                );
+              },
+            ),
     );
   }
 
-  Widget _buildTabButton(String label, int index) {
-    final isSelected = _selectedTab == index;
-    return Expanded(
-      child: GestureDetector(
-        onTap: () {
-          setState(() {
-            _selectedTab = index;
-          });
-        },
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          decoration: BoxDecoration(
-            color: isSelected
-                ? Theme.of(context).colorScheme.primary
-                : Colors.transparent,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Text(
-            label,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: isSelected ? Colors.white : Colors.grey[600],
-              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-              fontSize: 12,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+  Widget _buildProfileHeader(
+    BuildContext context,
+    User user,
+    Map<String, dynamic> userData,
+    bool isDark,
+  ) {
+    final username =
+        (userData['username'] as String?) ?? user.displayName ?? 'Book Lover';
+    final email = user.email ?? '';
 
-  List<Widget> _buildLibraryContent() {
-    return [
-      SliverToBoxAdapter(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Text(
-            'Currently Reading',
-            style: Theme.of(
-              context,
-            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-          ),
-        ),
-      ),
-      SliverToBoxAdapter(child: _buildCurrentlyReadingCard()),
-      SliverToBoxAdapter(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Text(
-            'Want to Read',
-            style: Theme.of(
-              context,
-            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-          ),
-        ),
-      ),
-      SliverList(
-        delegate: SliverChildBuilderDelegate((context, index) {
-          return _buildWantToReadCard(index);
-        }, childCount: 2),
-      ),
-    ];
-  }
-
-  List<Widget> _buildPreferencesContent() {
-    return [
-      SliverToBoxAdapter(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Text(
-            'Favorite Genres',
-            style: Theme.of(
-              context,
-            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-          ),
-        ),
-      ),
-      SliverToBoxAdapter(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children:
-                [
-                  'Science Fiction',
-                  'Fantasy',
-                  'Mystery',
-                  'Thriller',
-                  'Horror',
-                  'History',
-                ].map((genre) {
-                  return Chip(
-                    label: Text(genre),
-                    backgroundColor: Theme.of(context).colorScheme.primary,
-                    labelStyle: const TextStyle(color: Colors.white),
-                  );
-                }).toList(),
-          ),
-        ),
-      ),
-      SliverToBoxAdapter(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Text(
-            'Exclude Tags',
-            style: Theme.of(
-              context,
-            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-          ),
-        ),
-      ),
-      SliverToBoxAdapter(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: ['Romance', 'Young Adult'].map((tag) {
-              return Chip(
-                label: Text(tag),
-                backgroundColor: Colors.grey[300],
-                labelStyle: const TextStyle(color: Colors.black),
-              );
-            }).toList(),
-          ),
-        ),
-      ),
-      SliverToBoxAdapter(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: ElevatedButton(
-            onPressed: () {},
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.primary,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            child: const Text('Recalibrate Recommendations'),
-          ),
-        ),
-      ),
-    ];
-  }
-
-  List<Widget> _buildSettingsContent(bool isDark) {
-    return [
-      SliverToBoxAdapter(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Text(
-            'Account',
-            style: Theme.of(
-              context,
-            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-          ),
-        ),
-      ),
-      SliverToBoxAdapter(child: _buildSettingsItem('Account Details', () {})),
-      SliverToBoxAdapter(child: _buildSettingsItem('Change Password', () {})),
-      SliverToBoxAdapter(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Text(
-            'Notifications',
-            style: Theme.of(
-              context,
-            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-          ),
-        ),
-      ),
-      SliverToBoxAdapter(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Row(
-            children: [
-              const Expanded(child: Text('Push Notifications')),
-              Switch(
-                value: _pushNotifications,
-                onChanged: (value) {
-                  setState(() {
-                    _pushNotifications = value;
-                  });
-                },
-              ),
-            ],
-          ),
-        ),
-      ),
-      SliverToBoxAdapter(
-        child: _buildSettingsItem('Export Reading History', () {}),
-      ),
-      SliverToBoxAdapter(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Text(
-            'Support',
-            style: Theme.of(
-              context,
-            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-          ),
-        ),
-      ),
-      SliverToBoxAdapter(child: _buildSettingsItem('Help & Support', () {})),
-      SliverToBoxAdapter(child: _buildSettingsItem('Privacy Policy', () {})),
-      SliverToBoxAdapter(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: TextButton(
-            onPressed: () {},
-            child: const Text(
-              'Log Out',
-              style: TextStyle(color: Colors.red, fontSize: 16),
-            ),
-          ),
-        ),
-      ),
-    ];
-  }
-
-  Widget _buildCurrentlyReadingCard() {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
+        gradient: LinearGradient(
+          colors: isDark
+              ? [const Color(0xFF2D3E4B), const Color(0xFF1A2730)]
+              : [
+                  Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
+                  Theme.of(context).colorScheme.primary.withValues(alpha: 0.03),
+                ],
+        ),
+        borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
         children: [
-          Container(
-            width: 60,
-            height: 90,
-            decoration: BoxDecoration(
-              color: const Color(0xFFD4C5A0),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Center(
-              child: Text(
-                'Dune',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
+          CircleAvatar(
+            radius: 35,
+            backgroundColor: Theme.of(context).colorScheme.primary,
+            child: Text(
+              username.isNotEmpty ? username[0].toUpperCase() : 'B',
+              style: const TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
               ),
             ),
           ),
@@ -343,29 +122,40 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Dune',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                ),
                 Text(
-                  'Frank Herbert',
-                  style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                  username,
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    const Text(
-                      '4.5',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(width: 4),
-                    Icon(
-                      Icons.star,
-                      size: 16,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                  ],
+                const SizedBox(height: 2),
+                Text(
+                  email,
+                  style: TextStyle(color: Colors.grey[600], fontSize: 13),
                 ),
+                const SizedBox(height: 6),
+                if (userData['reading_level'] != null)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.primary.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      'Reading Band: ${(userData['reading_level'] as Map<String, dynamic>?)?['user_key_stage'] ?? 'Not set'}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
+                  ),
               ],
             ),
           ),
@@ -374,71 +164,424 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildWantToReadCard(int index) {
-    final books = [
-      {'title': 'The Hobbit', 'author': 'J.R.R. Tolkien'},
-      {'title': 'Project Hail Mary', 'author': 'Andy Weir'},
-    ];
+  Widget _buildStatsRow(BuildContext context, bool isDark) {
+    final libraryService = context.watch<LibraryService>();
 
-    final book = books[index];
+    return StreamBuilder<List<LibraryEntry>>(
+      stream: libraryService.libraryStream(),
+      builder: (context, snapshot) {
+        final entries = snapshot.data ?? [];
+        final currentlyReading = entries
+            .where((e) => e.shelf == BookShelf.currentlyReading)
+            .length;
+        final finished = entries
+            .where((e) => e.shelf == BookShelf.finished)
+            .length;
 
+        return Row(
+          children: [
+            Expanded(
+              child: _buildStatCard(
+                context,
+                Icons.menu_book,
+                '$currentlyReading',
+                'Reading',
+                isDark,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildStatCard(
+                context,
+                Icons.check_circle,
+                '$finished',
+                'Finished',
+                isDark,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildStatCard(
+                context,
+                Icons.library_books,
+                '${entries.length}',
+                'Total',
+                isDark,
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildStatCard(
+    BuildContext context,
+    IconData icon,
+    String value,
+    String label,
+    bool isDark,
+  ) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
-        ),
+        color: isDark ? const Color(0xFF2D3E4B) : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
-      child: Row(
+      child: Column(
+        children: [
+          Icon(icon, color: Theme.of(context).colorScheme.primary, size: 22),
+          const SizedBox(height: 6),
+          Text(
+            value,
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          ),
+          Text(label, style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTabs(
+    BuildContext context,
+    Map<String, dynamic> userData,
+    bool isDark,
+  ) {
+    return Column(
+      children: [
+        TabBar(
+          controller: _tabController,
+          labelColor: Theme.of(context).colorScheme.primary,
+          unselectedLabelColor: Colors.grey[600],
+          indicatorColor: Theme.of(context).colorScheme.primary,
+          indicatorWeight: 3,
+          labelStyle: const TextStyle(fontWeight: FontWeight.bold),
+          tabs: const [
+            Tab(text: 'Preferences'),
+            Tab(text: 'Reading Level'),
+            Tab(text: 'About'),
+          ],
+        ),
+        const SizedBox(height: 16),
+        SizedBox(
+          height: 300,
+          child: TabBarView(
+            controller: _tabController,
+            children: [
+              _buildPreferencesTab(context, userData, isDark),
+              _buildReadingLevelTab(context, userData, isDark),
+              _buildAboutTab(context, isDark),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPreferencesTab(
+    BuildContext context,
+    Map<String, dynamic> userData,
+    bool isDark,
+  ) {
+    final genres =
+        (userData['favorite_genres'] as List<dynamic>?)
+            ?.map((e) => e.toString())
+            .toList() ??
+        [];
+    final preferredLength =
+        (userData['preferred_length'] as String?) ?? 'Not set';
+    final favoriteAuthors =
+        (userData['favorite_authors'] as List<dynamic>?)
+            ?.map((e) => e.toString())
+            .toList() ??
+        [];
+    final favoriteBooks =
+        (userData['favorite_books'] as List<dynamic>?)
+            ?.map((e) => e.toString())
+            .toList() ??
+        [];
+
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Favorite Genres',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          ),
+          const SizedBox(height: 8),
+          genres.isEmpty
+              ? Text(
+                  'No genres selected',
+                  style: TextStyle(color: Colors.grey[500]),
+                )
+              : Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: genres
+                      .map(
+                        (g) => Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.primary.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            g,
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                          ),
+                        ),
+                      )
+                      .toList(),
+                ),
+          const SizedBox(height: 16),
+          _buildInfoRow('Preferred Length', preferredLength, isDark),
+          const SizedBox(height: 8),
+          _buildInfoRow(
+            'Favorite Authors',
+            favoriteAuthors.isEmpty ? 'Not set' : favoriteAuthors.join(', '),
+            isDark,
+          ),
+          if (favoriteBooks.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            _buildInfoRow('Favorite Books', favoriteBooks.join(', '), isDark),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildReadingLevelTab(
+    BuildContext context,
+    Map<String, dynamic> userData,
+    bool isDark,
+  ) {
+    final readingLevel =
+        userData['reading_level'] as Map<String, dynamic>? ?? {};
+    final keyStage = (readingLevel['user_key_stage'] as String?) ?? 'Not set';
+    final lexile =
+        (readingLevel['lexile_band_estimate'] as String?) ?? 'Not set';
+    final confidence = (readingLevel['confidence'] as num?)?.toDouble() ?? 0.0;
+    final comfortLevel =
+        (readingLevel['comfort_level'] as String?) ?? 'Not set';
+    final stretchLevel = readingLevel['stretch_level'] as String?;
+    final readingPrefs =
+        userData['reading_preferences'] as Map<String, dynamic>? ?? {};
+    final comfortPref =
+        (readingPrefs['comfort_preference'] as String?) ?? 'Not set';
+
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 50,
-            height: 75,
+            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
-              borderRadius: BorderRadius.circular(8),
+              gradient: LinearGradient(
+                colors: [
+                  Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                  Theme.of(context).colorScheme.primary.withValues(alpha: 0.05),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(16),
             ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  book['title'] as String,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.auto_stories,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Reading Band: $keyStage',
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
                 ),
+                const SizedBox(height: 8),
                 Text(
-                  book['author'] as String,
-                  style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                  'Lexile Range: $lexile',
+                  style: TextStyle(color: Colors.grey[600]),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Confidence: ${(confidence * 100).toStringAsFixed(0)}%',
+                  style: TextStyle(color: Colors.grey[600]),
+                ),
+                const SizedBox(height: 8),
+                LinearProgressIndicator(
+                  value: confidence,
+                  backgroundColor: Colors.grey[300],
+                  valueColor: AlwaysStoppedAnimation(
+                    Theme.of(context).colorScheme.primary,
+                  ),
+                  borderRadius: BorderRadius.circular(4),
                 ),
               ],
             ),
           ),
-          IconButton(icon: const Icon(Icons.bookmark), onPressed: () {}),
+          const SizedBox(height: 16),
+          _buildInfoRow('Comfort Level', comfortLevel, isDark),
+          const SizedBox(height: 8),
+          _buildInfoRow(
+            'Stretch Level',
+            stretchLevel ?? 'Not ready yet',
+            isDark,
+          ),
+          const SizedBox(height: 8),
+          _buildInfoRow('Reading Preference', comfortPref, isDark),
         ],
       ),
     );
   }
 
-  Widget _buildSettingsItem(String title, VoidCallback onTap) {
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: Row(
-          children: [
-            Expanded(child: Text(title)),
-            const Icon(Icons.chevron_right),
-          ],
+  Widget _buildAboutTab(BuildContext context, bool isDark) {
+    return Column(
+      children: [
+        const SizedBox(height: 16),
+        Icon(
+          Icons.menu_book,
+          size: 48,
+          color: Theme.of(context).colorScheme.primary,
         ),
+        const SizedBox(height: 12),
+        const Text(
+          'BookNest',
+          style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Version 1.0.0',
+          style: TextStyle(color: Colors.grey[600], fontSize: 14),
+        ),
+        const SizedBox(height: 16),
+        Text(
+          'Your personalized reading companion.\nDiscover books matched to your reading level.',
+          textAlign: TextAlign.center,
+          style: TextStyle(color: Colors.grey[500], fontSize: 14),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildInfoRow(String label, String value, bool isDark) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF2D3E4B) : Colors.grey[50],
+        borderRadius: BorderRadius.circular(12),
       ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 120,
+            child: Text(
+              label,
+              style: TextStyle(
+                color: Colors.grey[600],
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showSettingsSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Settings',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 16),
+                ListTile(
+                  leading: const Icon(Icons.person_outline),
+                  title: const Text('Edit Profile'),
+                  trailing: const Icon(Icons.chevron_right, color: Colors.grey),
+                  onTap: () => Navigator.pop(ctx),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.notifications_outlined),
+                  title: const Text('Notifications'),
+                  trailing: const Icon(Icons.chevron_right, color: Colors.grey),
+                  onTap: () => Navigator.pop(ctx),
+                ),
+                const Divider(),
+                ListTile(
+                  leading: const Icon(Icons.logout, color: Colors.red),
+                  title: const Text(
+                    'Log Out',
+                    style: TextStyle(color: Colors.red),
+                  ),
+                  onTap: () async {
+                    Navigator.pop(ctx);
+                    await context.read<app_auth.AuthProvider>().signOut();
+                    if (context.mounted) {
+                      Navigator.of(context).pushAndRemoveUntil(
+                        MaterialPageRoute(
+                          builder: (_) => const WelcomeScreen(),
+                        ),
+                        (route) => false,
+                      );
+                    }
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

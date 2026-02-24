@@ -38,17 +38,15 @@ class _HomeScreenState extends State<HomeScreen> {
           stream: user == null
               ? Stream.empty()
               : FirebaseFirestore.instance
-                  .collection('users')
-                  .doc(user.uid)
-                  .snapshots(),
+                    .collection('users')
+                    .doc(user.uid)
+                    .snapshots(),
           builder: (context, userSnapshot) {
             return FutureBuilder<List<Book>>(
               future: _booksFuture,
               builder: (context, booksSnapshot) {
                 if (!booksSnapshot.hasData) {
-                  return const Center(
-                    child: CircularProgressIndicator(),
-                  );
+                  return const Center(child: CircularProgressIndicator());
                 }
 
                 final books = booksSnapshot.data ?? [];
@@ -60,12 +58,13 @@ class _HomeScreenState extends State<HomeScreen> {
                     (readingLevel?['user_key_stage'] as String?) ?? 'KS3';
                 final confidence =
                     (readingLevel?['confidence'] as num?)?.toDouble() ?? 0.5;
-                final lexileBand = readingLevel?['lexile_band_estimate'] as String?;
+                final lexileBand =
+                    readingLevel?['lexile_band_estimate'] as String?;
                 final interests =
                     (userData?['favorite_genres'] as List<dynamic>?)
-                            ?.map((genre) => genre.toString())
-                            .toList() ??
-                        [];
+                        ?.map((genre) => genre.toString())
+                        .toList() ??
+                    [];
 
                 final recommendations = _bookRepository.buildRecommendations(
                   books: books,
@@ -83,10 +82,9 @@ class _HomeScreenState extends State<HomeScreen> {
                           children: [
                             CircleAvatar(
                               radius: 24,
-                              backgroundColor: Theme.of(context)
-                                  .colorScheme
-                                  .primary
-                                  .withValues(alpha: 0.2),
+                              backgroundColor: Theme.of(
+                                context,
+                              ).colorScheme.primary.withValues(alpha: 0.2),
                               child: Icon(
                                 Icons.person,
                                 color: Theme.of(context).colorScheme.primary,
@@ -107,9 +105,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   Text(
                                     'Reading band $userKeyStage'
                                     '${lexileBand == null ? '' : ' ($lexileBand)'}',
-                                    style: TextStyle(
-                                      color: Colors.grey[600],
-                                    ),
+                                    style: TextStyle(color: Colors.grey[600]),
                                   ),
                                 ],
                               ),
@@ -131,8 +127,9 @@ class _HomeScreenState extends State<HomeScreen> {
                           comfortStage: confidence < 0.55
                               ? shiftKeyStage(userKeyStage, -1)
                               : userKeyStage,
-                          stretchStage:
-                              confidence >= 0.6 ? shiftKeyStage(userKeyStage, 1) : null,
+                          stretchStage: confidence >= 0.6
+                              ? shiftKeyStage(userKeyStage, 1)
+                              : null,
                         ),
                       ),
                     ),
@@ -140,7 +137,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       context: context,
                       title: 'Comfort Reads',
                       books: recommendations.comfortReads,
-                      emptyLabel: 'Complete onboarding to unlock your comfort reads.',
+                      emptyLabel:
+                          'Complete onboarding to unlock your comfort reads.',
                     ),
                     _buildBookSection(
                       context: context,
@@ -190,13 +188,13 @@ class _HomeScreenState extends State<HomeScreen> {
             padding: const EdgeInsets.all(16.0),
             child: Text(
               title,
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
             ),
           ),
           SizedBox(
-            height: 280,
+            height: 320,
             child: books.isEmpty
                 ? Center(
                     child: Text(
@@ -223,7 +221,7 @@ class _HomeScreenState extends State<HomeScreen> {
       onTap: () {
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => const BookDetailScreen()),
+          MaterialPageRoute(builder: (context) => BookDetailScreen(book: book)),
         );
       },
       child: Container(
@@ -235,26 +233,86 @@ class _HomeScreenState extends State<HomeScreen> {
             Container(
               height: 200,
               decoration: BoxDecoration(
-                color: _stageColor(context, book.keyStage),
-                borderRadius: BorderRadius.circular(12),
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    book.displayColor,
+                    book.displayColor.withValues(alpha: 0.7),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(14),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.2),
-                    blurRadius: 8,
-                    offset: const Offset(0, 4),
+                    color: book.displayColor.withValues(alpha: 0.35),
+                    blurRadius: 12,
+                    offset: const Offset(0, 6),
                   ),
                 ],
               ),
-              child: Center(
-                child: Text(
-                  book.title,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
+              child: Stack(
+                children: [
+                  // Subtle pattern overlay
+                  Positioned(
+                    right: -20,
+                    top: -20,
+                    child: Container(
+                      width: 100,
+                      height: 100,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white.withValues(alpha: 0.06),
+                      ),
+                    ),
                   ),
-                ),
+                  Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Text(
+                        book.title,
+                        textAlign: TextAlign.center,
+                        maxLines: 4,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          height: 1.3,
+                        ),
+                      ),
+                    ),
+                  ),
+                  // Rating badge
+                  Positioned(
+                    bottom: 8,
+                    right: 8,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.25),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.star, size: 12, color: Colors.amber),
+                          const SizedBox(width: 2),
+                          Text(
+                            book.rating.toStringAsFixed(1),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 8),
@@ -267,34 +325,37 @@ class _HomeScreenState extends State<HomeScreen> {
             Text(
               book.author,
               style: TextStyle(color: Colors.grey[600], fontSize: 12),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
-            Text(
-              '${book.keyStage} band',
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.primary,
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-              ),
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    book.keyStage,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.primary,
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
       ),
     );
-  }
-
-  Color _stageColor(BuildContext context, String keyStage) {
-    switch (normalizeKeyStage(keyStage)) {
-      case 'KS2':
-        return const Color(0xFF5B8FA3);
-      case 'KS3':
-        return const Color(0xFF2D5F5D);
-      case 'KS4':
-        return const Color(0xFF6B9B9E);
-      case 'KS5':
-        return const Color(0xFF3A5F5C);
-      default:
-        return Theme.of(context).colorScheme.primary;
-    }
   }
 }
 
@@ -314,25 +375,120 @@ class _BandSummaryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final confidenceLabel = (confidence * 100).toStringAsFixed(0);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
+        gradient: LinearGradient(
+          colors: isDark
+              ? [const Color(0xFF2D3E4B), const Color(0xFF1F2C34)]
+              : [
+                  Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
+                  Theme.of(context).colorScheme.primary.withValues(alpha: 0.04),
+                ],
+        ),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Your reading band: $keyStage',
-            style: const TextStyle(fontWeight: FontWeight.bold),
+          Row(
+            children: [
+              Icon(
+                Icons.auto_stories,
+                color: Theme.of(context).colorScheme.primary,
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Your reading band: $keyStage',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 6),
-          Text('Confidence $confidenceLabel%'),
-          const SizedBox(height: 6),
-          Text('Comfort: $comfortStage'),
-          Text('Stretch: ${stretchStage ?? 'Not ready yet'}'),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: LinearProgressIndicator(
+                    value: confidence,
+                    backgroundColor: Colors.grey[300],
+                    valueColor: AlwaysStoppedAnimation(
+                      Theme.of(context).colorScheme.primary,
+                    ),
+                    minHeight: 6,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                '$confidenceLabel%',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              _buildBadge(context, 'Comfort', comfortStage, Icons.spa_outlined),
+              const SizedBox(width: 12),
+              _buildBadge(
+                context,
+                'Stretch',
+                stretchStage ?? '—',
+                Icons.trending_up,
+              ),
+            ],
+          ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildBadge(
+    BuildContext context,
+    String label,
+    String value,
+    IconData icon,
+  ) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, size: 16, color: Theme.of(context).colorScheme.primary),
+            const SizedBox(width: 6),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                ),
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

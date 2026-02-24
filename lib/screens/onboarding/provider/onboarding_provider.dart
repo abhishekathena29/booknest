@@ -29,11 +29,11 @@ class PassageResponse {
 
 class OnboardingProvider extends ChangeNotifier {
   OnboardingProvider() {
-    _favoriteBookControllers = List.generate(3, (_) => TextEditingController());
     _responses = List.generate(_passages.length, (_) => PassageResponse());
     _passageStartTimes = List.filled(_passages.length, null);
   }
 
+  // ─── Genres ─────────────────────────────────────
   final Set<String> _selectedGenres = {};
   final List<String> _genres = const [
     'Fantasy',
@@ -52,18 +52,50 @@ class OnboardingProvider extends ChangeNotifier {
     'Dystopian',
     'Philosophy',
   ];
-
-  final TextEditingController authorController = TextEditingController();
-  late final List<TextEditingController> _favoriteBookControllers;
-
-  String? _selectedLength;
   String _genreQuery = '';
-  bool _favoriteBooksSkipped = false;
-  int _currentStep = 0;
+
+  // ─── Book Length ────────────────────────────────
+  String? _selectedLength;
+
+  // ─── Authors (selectable chips) ─────────────────
+  final Set<String> _selectedAuthors = {};
+  String _authorQuery = '';
+  final List<String> _popularAuthors = const [
+    'Roald Dahl',
+    'J.K. Rowling',
+    'Rick Riordan',
+    'Jeff Kinney',
+    'David Walliams',
+    'Jacqueline Wilson',
+    'Enid Blyton',
+    'C.S. Lewis',
+    'J.R.R. Tolkien',
+    'Michael Morpurgo',
+    'Julia Donaldson',
+    'Anthony Horowitz',
+    'Philip Pullman',
+    'Suzanne Collins',
+    'John Green',
+    'Sally Rooney',
+    'Brandon Sanderson',
+    'Agatha Christie',
+    'Stephen King',
+    'George Orwell',
+    'Jane Austen',
+    'Charles Dickens',
+    'Shakespeare',
+    'R.L. Stine',
+  ];
+
+  // ─── Reading Preferences ────────────────────────
   int? _age;
   String? _comfortPreference;
+
+  // ─── Navigation ─────────────────────────────────
+  int _currentStep = 0;
   bool _saving = false;
 
+  // ─── Reading Profile ────────────────────────────
   Map<String, double> _stageProbabilities = {};
   String? _userKeyStage;
   String? _lexileBandEstimate;
@@ -71,6 +103,7 @@ class OnboardingProvider extends ChangeNotifier {
   String? _comfortLevel;
   String? _stretchLevel;
 
+  // ─── Passages ───────────────────────────────────
   final List<ReadingPassage> _passages = const [
     ReadingPassage(
       keyStage: 'KS2',
@@ -155,19 +188,20 @@ class OnboardingProvider extends ChangeNotifier {
   late final List<PassageResponse> _responses;
   late final List<DateTime?> _passageStartTimes;
 
+  // ─── Getters ────────────────────────────────────
   Set<String> get selectedGenres => _selectedGenres;
   List<String> get genres => _genres;
-  List<TextEditingController> get favoriteBookControllers =>
-      _favoriteBookControllers;
   String? get selectedLength => _selectedLength;
   String get genreQuery => _genreQuery;
-  bool get favoriteBooksSkipped => _favoriteBooksSkipped;
   int get currentStep => _currentStep;
   int? get age => _age;
   String? get comfortPreference => _comfortPreference;
   bool get saving => _saving;
   List<ReadingPassage> get passages => _passages;
   List<PassageResponse> get responses => _responses;
+  Set<String> get selectedAuthors => _selectedAuthors;
+  String get authorQuery => _authorQuery;
+  List<String> get popularAuthors => _popularAuthors;
 
   Map<String, double> get stageProbabilities => _stageProbabilities;
   String? get userKeyStage => _userKeyStage;
@@ -176,7 +210,8 @@ class OnboardingProvider extends ChangeNotifier {
   String? get comfortLevel => _comfortLevel;
   String? get stretchLevel => _stretchLevel;
 
-  int get passageStepStart => 5;
+  // Steps: 0=genres, 1=length, 2=authors, 3=reading prefs, 4-7=passages, 8=results
+  int get passageStepStart => 4;
   int get resultsStepIndex => passageStepStart + _passages.length;
   int get totalSteps => resultsStepIndex + 1;
 
@@ -186,32 +221,34 @@ class OnboardingProvider extends ChangeNotifier {
     return _genres.where((g) => g.toLowerCase().contains(query)).toList();
   }
 
-  bool get canContinue =>
-      _selectedGenres.length >= 3 && _selectedLength != null;
-
-  bool get canProceed {
-    if (_currentStep == 0) {
-      return _selectedGenres.length >= 3;
-    }
-    if (_currentStep == 1) {
-      return _selectedLength != null;
-    }
-    if (_currentStep == 2) {
-      return true;
-    }
-    if (_currentStep == 3) {
-      return true;
-    }
-    if (_currentStep == 4) {
-      return _comfortPreference != null;
-    }
-    final passageIndex = _passageIndexForStep(_currentStep);
-    if (passageIndex != null) {
-      return _responses[passageIndex].isComplete();
-    }
-    return true;
+  List<String> get filteredAuthors {
+    if (_authorQuery.isEmpty) return _popularAuthors;
+    final query = _authorQuery.toLowerCase();
+    return _popularAuthors
+        .where((a) => a.toLowerCase().contains(query))
+        .toList();
   }
 
+  bool get canProceed {
+    switch (_currentStep) {
+      case 0:
+        return _selectedGenres.length >= 3;
+      case 1:
+        return _selectedLength != null;
+      case 2:
+        return true; // authors optional
+      case 3:
+        return _comfortPreference != null;
+      default:
+        final passageIndex = _passageIndexForStep(_currentStep);
+        if (passageIndex != null) {
+          return _responses[passageIndex].isComplete();
+        }
+        return true;
+    }
+  }
+
+  // ─── Actions ────────────────────────────────────
   void updateGenreQuery(String value) {
     _genreQuery = value;
     notifyListeners();
@@ -231,9 +268,22 @@ class OnboardingProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void updateAuthorQuery(String value) {
+    _authorQuery = value;
+    notifyListeners();
+  }
+
+  void toggleAuthor(String author) {
+    if (_selectedAuthors.contains(author)) {
+      _selectedAuthors.remove(author);
+    } else {
+      _selectedAuthors.add(author);
+    }
+    notifyListeners();
+  }
+
   void updateAge(String value) {
-    final parsed = int.tryParse(value);
-    _age = parsed;
+    _age = int.tryParse(value);
     notifyListeners();
   }
 
@@ -252,6 +302,7 @@ class OnboardingProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  // ─── Navigation ─────────────────────────────────
   void setCurrentStep(int step) {
     _handleStepExit(_currentStep);
     _currentStep = step;
@@ -268,21 +319,6 @@ class OnboardingProvider extends ChangeNotifier {
   void previousStep() {
     if (_currentStep > 0) {
       setCurrentStep(_currentStep - 1);
-    }
-  }
-
-  void skipFavoriteBooks() {
-    _favoriteBooksSkipped = true;
-    for (final controller in _favoriteBookControllers) {
-      controller.clear();
-    }
-    notifyListeners();
-  }
-
-  void favoriteBookEdited() {
-    if (_favoriteBooksSkipped) {
-      _favoriteBooksSkipped = false;
-      notifyListeners();
     }
   }
 
@@ -316,6 +352,7 @@ class OnboardingProvider extends ChangeNotifier {
     return null;
   }
 
+  // ─── Reading Profile ────────────────────────────
   void _computeReadingProfile() {
     if (_responses.any((response) => !response.isComplete())) {
       return;
@@ -326,33 +363,23 @@ class OnboardingProvider extends ChangeNotifier {
     final ageIndex = ageToKeyStageIndex(_age);
     if (ageIndex != null) {
       scores[ageIndex] += 2.0;
-      if (ageIndex > 0) {
-        scores[ageIndex - 1] += 0.5;
-      }
-      if (ageIndex < scores.length - 1) {
-        scores[ageIndex + 1] += 0.5;
-      }
+      if (ageIndex > 0) scores[ageIndex - 1] += 0.5;
+      if (ageIndex < scores.length - 1) scores[ageIndex + 1] += 0.5;
     }
 
     for (var i = 0; i < _passages.length; i++) {
       final passage = _passages[i];
       final response = _responses[i];
       final stageIndex = keyStageIndex(passage.keyStage);
-      if (stageIndex == null) {
-        continue;
-      }
+      if (stageIndex == null) continue;
       final difficulty = response.difficulty ?? 'OK';
 
       if (difficulty == 'Easy') {
         scores[stageIndex] += 0.6;
-        if (stageIndex < scores.length - 1) {
-          scores[stageIndex + 1] += 1.2;
-        }
+        if (stageIndex < scores.length - 1) scores[stageIndex + 1] += 1.2;
       } else if (difficulty == 'Hard') {
         scores[stageIndex] += 0.6;
-        if (stageIndex > 0) {
-          scores[stageIndex - 1] += 1.2;
-        }
+        if (stageIndex > 0) scores[stageIndex - 1] += 1.2;
       } else {
         scores[stageIndex] += 1.0;
       }
@@ -388,7 +415,7 @@ class OnboardingProvider extends ChangeNotifier {
       scores[currentTopIndex + 1] += 0.6;
     }
 
-    final total = scores.fold<double>(0.0, (sum, value) => sum + value);
+    final total = scores.fold<double>(0.0, (prev, value) => prev + value);
     final probabilities = <String, double>{};
     for (var i = 0; i < stageOrder.length; i++) {
       probabilities[stageOrder[i]] = total == 0 ? 0 : scores[i] / total;
@@ -425,6 +452,7 @@ class OnboardingProvider extends ChangeNotifier {
     return maxIndex;
   }
 
+  // ─── Save ───────────────────────────────────────
   Future<void> saveOnboarding() async {
     if (_saving) return;
     _saving = true;
@@ -437,11 +465,7 @@ class OnboardingProvider extends ChangeNotifier {
       final payload = {
         'favorite_genres': _selectedGenres.toList(),
         'preferred_length': _selectedLength,
-        'favorite_authors': authorController.text.trim(),
-        'favorite_books': _favoriteBookControllers
-            .map((controller) => controller.text.trim())
-            .where((value) => value.isNotEmpty)
-            .toList(),
+        'favorite_authors': _selectedAuthors.toList(),
         'reading_level': {
           'user_key_stage': _userKeyStage,
           'lexile_band_estimate': _lexileBandEstimate,
@@ -466,14 +490,5 @@ class OnboardingProvider extends ChangeNotifier {
 
     _saving = false;
     notifyListeners();
-  }
-
-  @override
-  void dispose() {
-    authorController.dispose();
-    for (final controller in _favoriteBookControllers) {
-      controller.dispose();
-    }
-    super.dispose();
   }
 }

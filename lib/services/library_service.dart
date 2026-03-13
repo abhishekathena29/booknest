@@ -86,17 +86,9 @@ class LibraryService extends ChangeNotifier {
 
   /// Stream entries for a specific shelf.
   Stream<List<LibraryEntry>> shelfStream(BookShelf shelf) {
-    final ref = _libraryRef;
-    if (ref == null) return Stream.value([]);
-    return ref
-        .where('shelf', isEqualTo: shelf.value)
-        .orderBy('addedAt', descending: true)
-        .snapshots()
-        .map(
-          (snapshot) => snapshot.docs
-              .map((doc) => LibraryEntry.fromMap(doc.data(), docId: doc.id))
-              .toList(),
-        );
+    return libraryStream().map(
+      (entries) => entries.where((entry) => entry.shelf == shelf).toList(),
+    );
   }
 
   /// Add a book to the user's library on a given shelf.

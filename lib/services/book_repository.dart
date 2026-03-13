@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:csv/csv.dart';
 import '../models/book.dart';
@@ -15,23 +16,23 @@ class RecommendationResult {
 
 class BookRepository {
   /// Cached book list to avoid re-parsing CSV on every access.
-  List<Book>? _cachedBooks;
+  static List<Book>? _cachedBooks;
+  static Future<List<Book>>? _booksFuture;
 
   /// Get cached books or load from assets.
   Future<List<Book>> getBooks() async {
-    _cachedBooks ??= await loadBooksFromAssets('assets/TRAIN_balanced.csv');
-    return _cachedBooks!;
+    if (_cachedBooks != null) {
+      return _cachedBooks!;
+    }
+    _booksFuture ??= loadBooksFromAssets('assets/TRAIN_balanced.csv');
+    return _booksFuture!;
   }
 
   /// Search books by title, author, or genre (case-insensitive).
   List<Book> searchBooks(String query, List<Book> books) {
     if (query.trim().isEmpty) return books;
     final lower = query.toLowerCase();
-    return books.where((book) {
-      return book.title.toLowerCase().contains(lower) ||
-          book.author.toLowerCase().contains(lower) ||
-          book.subjects.any((s) => s.toLowerCase().contains(lower));
-    }).toList();
+    return books.where((book) => book.searchIndex.contains(lower)).toList();
   }
 
   /// Filter books by a specific genre/subject.
@@ -57,58 +58,10 @@ class BookRepository {
   }
 
   Future<List<Book>> loadBooksFromAssets(String assetPath) async {
+    if (_cachedBooks != null) return _cachedBooks!;
     final csvData = await rootBundle.loadString(assetPath);
-    final rows = const CsvToListConverter().convert(csvData);
-    if (rows.isEmpty) return [];
-
-    final headers = rows.first
-        .map((header) => header.toString().trim())
-        .toList();
-    final headerIndex = <String, int>{};
-    for (var i = 0; i < headers.length; i++) {
-      headerIndex[headers[i]] = i;
-    }
-
-    final books = <Book>[];
-    for (var i = 1; i < rows.length; i++) {
-      final row = rows[i];
-      final title = _getValue(row, headerIndex, 'title');
-      final author = _getValue(row, headerIndex, 'author');
-      final category = _getValue(row, headerIndex, 'category');
-      final keyStageRaw = _getValue(row, headerIndex, 'UK Key Stage');
-      final description = _getValue(row, headerIndex, 'segments');
-      final wordCount = _getDouble(row, headerIndex, 'word_count');
-      final flesch = _getDouble(
-        row,
-        headerIndex,
-        'readability grades_FleschReadingEase',
-      );
-
-      if (title.isEmpty) {
-        continue;
-      }
-
-      final keyStage = normalizeKeyStage(keyStageRaw);
-      final lexileBand = lexileBandForStage(keyStage);
-      final lexileRange = _parseLexileBand(lexileBand);
-      final rating = _ratingFromFlesch(flesch);
-      final popularity = wordCount?.round() ?? 0;
-
-      books.add(
-        Book(
-          id: '${title}_$author'.replaceAll(' ', '_'),
-          title: title,
-          author: author.isEmpty ? 'Unknown' : author,
-          subjects: _splitSubjects(category),
-          description: description,
-          keyStage: keyStage,
-          lexileBandMin: lexileRange[0],
-          lexileBandMax: lexileRange[1],
-          rating: rating,
-          popularity: popularity,
-        ),
-      );
-    }
+    final rawBooks = await compute(_parseBooksCsv, csvData);
+    final books = rawBooks.map((book) => Book.fromMap(book)).toList();
     _cachedBooks = books;
     return books;
   }
@@ -203,43 +156,99 @@ class BookRepository {
     return matches / interests.length;
   }
 
-  List<String> _splitSubjects(String raw) {
-    if (raw.trim().isEmpty) return [];
-    return raw
-        .split(RegExp(r'[;,/]'))
-        .map((subject) => subject.trim())
-        .where((subject) => subject.isNotEmpty)
-        .toList();
+  static void clearCache() {
+    _cachedBooks = null;
+    _booksFuture = null;
+  }
+}
+
+List<Map<String, dynamic>> _parseBooksCsv(String csvData) {
+  final rows = const CsvToListConverter().convert(csvData);
+  if (rows.isEmpty) return const [];
+
+  final headers = rows.first.map((header) => header.toString().trim()).toList();
+  final headerIndex = <String, int>{};
+  for (var i = 0; i < headers.length; i++) {
+    headerIndex[headers[i]] = i;
   }
 
-  String _getValue(List<dynamic> row, Map<String, int> headers, String key) {
-    final index = headers[key];
-    if (index == null || index >= row.length) return '';
-    return row[index].toString();
-  }
+  final books = <Map<String, dynamic>>[];
+  for (var i = 1; i < rows.length; i++) {
+    final row = rows[i];
+    final title = _getValue(row, headerIndex, 'title');
+    final author = _getValue(row, headerIndex, 'author');
+    final category = _getValue(row, headerIndex, 'category');
+    final keyStageRaw = _getValue(row, headerIndex, 'UK Key Stage');
+    final description = _getValue(row, headerIndex, 'segments');
+    final wordCount = _getDouble(row, headerIndex, 'word_count');
+    final flesch = _getDouble(
+      row,
+      headerIndex,
+      'readability grades_FleschReadingEase',
+    );
 
-  double? _getDouble(List<dynamic> row, Map<String, int> headers, String key) {
-    final value = _getValue(row, headers, key);
-    return double.tryParse(value);
-  }
-
-  List<int> _parseLexileBand(String band) {
-    if (band.contains('+')) {
-      final min = int.tryParse(band.replaceAll('+', '')) ?? 1201;
-      return [min, min + 200];
+    if (title.isEmpty) {
+      continue;
     }
-    final parts = band.split('-');
-    if (parts.length == 2) {
-      final min = int.tryParse(parts[0]) ?? 0;
-      final max = int.tryParse(parts[1]) ?? min;
-      return [min, max];
-    }
-    return [0, 0];
-  }
 
-  double _ratingFromFlesch(double? flesch) {
-    if (flesch == null) return 3.8;
-    final normalized = (flesch / 100).clamp(0.0, 1.0);
-    return (2.5 + normalized * 2.5);
+    final keyStage = normalizeKeyStage(keyStageRaw);
+    final lexileBand = lexileBandForStage(keyStage);
+    final lexileRange = _parseLexileBand(lexileBand);
+    final rating = _ratingFromFlesch(flesch);
+    final popularity = wordCount?.round() ?? 0;
+
+    books.add({
+      'id': '${title}_$author'.replaceAll(' ', '_'),
+      'title': title,
+      'author': author.isEmpty ? 'Unknown' : author,
+      'subjects': _splitSubjects(category),
+      'description': description,
+      'keyStage': keyStage,
+      'lexileBandMin': lexileRange[0],
+      'lexileBandMax': lexileRange[1],
+      'rating': rating,
+      'popularity': popularity,
+    });
   }
+  return books;
+}
+
+List<String> _splitSubjects(String raw) {
+  if (raw.trim().isEmpty) return [];
+  return raw
+      .split(RegExp(r'[;,/]'))
+      .map((subject) => subject.trim())
+      .where((subject) => subject.isNotEmpty)
+      .toList();
+}
+
+String _getValue(List<dynamic> row, Map<String, int> headers, String key) {
+  final index = headers[key];
+  if (index == null || index >= row.length) return '';
+  return row[index].toString();
+}
+
+double? _getDouble(List<dynamic> row, Map<String, int> headers, String key) {
+  final value = _getValue(row, headers, key);
+  return double.tryParse(value);
+}
+
+List<int> _parseLexileBand(String band) {
+  if (band.contains('+')) {
+    final min = int.tryParse(band.replaceAll('+', '')) ?? 1201;
+    return [min, min + 200];
+  }
+  final parts = band.split('-');
+  if (parts.length == 2) {
+    final min = int.tryParse(parts[0]) ?? 0;
+    final max = int.tryParse(parts[1]) ?? min;
+    return [min, max];
+  }
+  return [0, 0];
+}
+
+double _ratingFromFlesch(double? flesch) {
+  if (flesch == null) return 3.8;
+  final normalized = (flesch / 100).clamp(0.0, 1.0);
+  return (2.5 + normalized * 2.5);
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../services/library_service.dart';
+import '../../widgets/app_book_cover.dart';
 import '../explore/book_detail_screen.dart';
 
 class MyLibraryScreen extends StatefulWidget {
@@ -225,37 +226,12 @@ class _ShelfView extends StatelessWidget {
           ),
           child: Row(
             children: [
-              // Book cover
-              Container(
+              AppBookCover(
+                book: book,
                 width: 55,
                 height: 80,
-                decoration: BoxDecoration(
-                  color: book.displayColor,
-                  borderRadius: BorderRadius.circular(8),
-                  boxShadow: [
-                    BoxShadow(
-                      color: book.displayColor.withValues(alpha: 0.4),
-                      blurRadius: 6,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(4),
-                    child: Text(
-                      book.title,
-                      textAlign: TextAlign.center,
-                      maxLines: 3,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 8,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
+                borderRadius: 10,
+                compact: true,
               ),
               const SizedBox(width: 12),
               // Book info

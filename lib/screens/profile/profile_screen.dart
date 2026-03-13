@@ -549,13 +549,10 @@ class _ProfileScreenState extends State<ProfileScreen>
                   leading: const Icon(Icons.person_outline),
                   title: const Text('Edit Profile'),
                   trailing: const Icon(Icons.chevron_right, color: Colors.grey),
-                  onTap: () => Navigator.pop(ctx),
-                ),
-                ListTile(
-                  leading: const Icon(Icons.notifications_outlined),
-                  title: const Text('Notifications'),
-                  trailing: const Icon(Icons.chevron_right, color: Colors.grey),
-                  onTap: () => Navigator.pop(ctx),
+                  onTap: () async {
+                    Navigator.pop(ctx);
+                    await _showEditProfileDialog(context);
+                  },
                 ),
                 const Divider(),
                 ListTile(
@@ -583,5 +580,80 @@ class _ProfileScreenState extends State<ProfileScreen>
         );
       },
     );
+  }
+
+  Future<void> _showEditProfileDialog(BuildContext context) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final doc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .get();
+    final data = doc.data() ?? {};
+    final usernameController = TextEditingController(
+      text: (data['username'] as String?) ?? user.displayName ?? '',
+    );
+
+    if (!context.mounted) {
+      usernameController.dispose();
+      return;
+    }
+
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        var saving = false;
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text('Edit Profile'),
+              content: TextField(
+                controller: usernameController,
+                decoration: const InputDecoration(labelText: 'Username'),
+                textInputAction: TextInputAction.done,
+              ),
+              actions: [
+                TextButton(
+                  onPressed: saving ? null : () => Navigator.pop(dialogContext),
+                  child: const Text('Cancel'),
+                ),
+                FilledButton(
+                  onPressed: saving
+                      ? null
+                      : () async {
+                          final username = usernameController.text.trim();
+                          if (username.isEmpty) {
+                            return;
+                          }
+                          setState(() => saving = true);
+                          await FirebaseFirestore.instance
+                              .collection('users')
+                              .doc(user.uid)
+                              .set({
+                                'username': username,
+                                'updated_at': Timestamp.now(),
+                              }, SetOptions(merge: true));
+                          await user.updateDisplayName(username);
+                          if (dialogContext.mounted) {
+                            Navigator.pop(dialogContext);
+                          }
+                        },
+                  child: saving
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('Save'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    usernameController.dispose();
   }
 }

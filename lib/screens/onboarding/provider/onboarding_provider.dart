@@ -94,6 +94,7 @@ class OnboardingProvider extends ChangeNotifier {
   // ─── Navigation ─────────────────────────────────
   int _currentStep = 0;
   bool _saving = false;
+  String? _saveError;
 
   // ─── Reading Profile ────────────────────────────
   Map<String, double> _stageProbabilities = {};
@@ -197,6 +198,7 @@ class OnboardingProvider extends ChangeNotifier {
   int? get age => _age;
   String? get comfortPreference => _comfortPreference;
   bool get saving => _saving;
+  String? get saveError => _saveError;
   List<ReadingPassage> get passages => _passages;
   List<PassageResponse> get responses => _responses;
   Set<String> get selectedAuthors => _selectedAuthors;
@@ -456,39 +458,46 @@ class OnboardingProvider extends ChangeNotifier {
   Future<void> saveOnboarding() async {
     if (_saving) return;
     _saving = true;
+    _saveError = null;
     notifyListeners();
 
-    _computeReadingProfile();
+    try {
+      _computeReadingProfile();
 
-    final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      final payload = {
-        'favorite_genres': _selectedGenres.toList(),
-        'preferred_length': _selectedLength,
-        'favorite_authors': _selectedAuthors.toList(),
-        'reading_level': {
-          'user_key_stage': _userKeyStage,
-          'lexile_band_estimate': _lexileBandEstimate,
-          'confidence': _confidence,
-          'comfort_level': _comfortLevel,
-          'stretch_level': _stretchLevel,
-          'probabilities': _stageProbabilities,
-        },
-        'reading_preferences': {
-          'age': _age,
-          'comfort_preference': _comfortPreference,
-        },
-        'onboarding_completed': true,
-        'updated_at': Timestamp.now(),
-      };
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        final payload = {
+          'favorite_genres': _selectedGenres.toList(),
+          'preferred_length': _selectedLength,
+          'favorite_authors': _selectedAuthors.toList(),
+          'reading_level': {
+            'user_key_stage': _userKeyStage,
+            'lexile_band_estimate': _lexileBandEstimate,
+            'confidence': _confidence,
+            'comfort_level': _comfortLevel,
+            'stretch_level': _stretchLevel,
+            'probabilities': _stageProbabilities,
+          },
+          'reading_preferences': {
+            'age': _age,
+            'comfort_preference': _comfortPreference,
+          },
+          'onboarding_completed': true,
+          'updated_at': Timestamp.now(),
+        };
 
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .set(payload, SetOptions(merge: true));
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .set(payload, SetOptions(merge: true));
+      }
+    } catch (e) {
+      _saveError =
+          'We could not finish setting up your profile. Please try again.';
+      rethrow;
+    } finally {
+      _saving = false;
+      notifyListeners();
     }
-
-    _saving = false;
-    notifyListeners();
   }
 }

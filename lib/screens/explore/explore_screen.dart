@@ -1,6 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+
 import '../../models/book.dart';
 import '../../services/book_repository.dart';
+import '../../widgets/app_book_cover.dart';
 import 'book_detail_screen.dart';
 
 class ExploreScreen extends StatefulWidget {
@@ -17,6 +21,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
   List<Book> _displayedBooks = [];
   String? _selectedGenre;
   bool _loading = true;
+  Timer? _searchDebounce;
 
   static const List<Map<String, dynamic>> _genres = [
     {
@@ -53,17 +58,19 @@ class _ExploreScreenState extends State<ExploreScreen> {
     if (mounted) {
       setState(() {
         _allBooks = books;
-        _displayedBooks = books.take(20).toList();
+        _displayedBooks = books.take(24).toList();
         _loading = false;
       });
     }
   }
 
   void _onSearchChanged() {
-    _applyFilters();
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(const Duration(milliseconds: 180), _applyFilters);
   }
 
   void _applyFilters() {
+    if (!mounted) return;
     setState(() {
       List<Book> result = _allBooks;
 
@@ -75,11 +82,11 @@ class _ExploreScreenState extends State<ExploreScreen> {
         result = _bookRepository.searchBooks(_searchController.text, result);
       }
 
-      _displayedBooks = result.take(30).toList();
+      _displayedBooks = result.take(40).toList();
     });
   }
 
-  void _selectGenre(String? genre) {
+  void _selectGenre(String genre) {
     setState(() {
       _selectedGenre = _selectedGenre == genre ? null : genre;
     });
@@ -88,6 +95,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
 
   @override
   void dispose() {
+    _searchDebounce?.cancel();
     _searchController.removeListener(_onSearchChanged);
     _searchController.dispose();
     super.dispose();
@@ -104,42 +112,66 @@ class _ExploreScreenState extends State<ExploreScreen> {
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24),
         ),
         centerTitle: false,
-        elevation: 0,
-        backgroundColor: Colors.transparent,
       ),
       body: Column(
         children: [
-          // Search bar
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: 'Search by title, author, or genre...',
-                prefixIcon: const Icon(Icons.search),
-                suffixIcon: _searchController.text.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear),
-                        onPressed: () {
-                          _searchController.clear();
-                          _applyFilters();
-                        },
-                      )
-                    : null,
-                filled: true,
-                fillColor: isDark ? const Color(0xFF2D3E4B) : Colors.grey[100],
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: BorderSide.none,
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+            child: Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Theme.of(
+                      context,
+                    ).colorScheme.primary.withValues(alpha: 0.14),
+                    Theme.of(
+                      context,
+                    ).colorScheme.secondary.withValues(alpha: 0.08),
+                  ],
                 ),
-                contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                borderRadius: BorderRadius.circular(26),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Search 10,000+ titles',
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Find books by title, author, stage, or genre without waiting on the full catalog.',
+                    style: TextStyle(color: Colors.grey[700], fontSize: 14),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: _searchController,
+                    decoration: InputDecoration(
+                      hintText: 'Search by title, author, or genre...',
+                      prefixIcon: const Icon(Icons.search),
+                      suffixIcon: _searchController.text.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear),
+                              onPressed: () {
+                                _searchController.clear();
+                                _applyFilters();
+                              },
+                            )
+                          : null,
+                      fillColor: isDark
+                          ? const Color(0xFF21303D)
+                          : Colors.white.withValues(alpha: 0.92),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
-
-          // Genre chips row
           SizedBox(
-            height: 50,
+            height: 52,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -174,8 +206,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
                           : FontWeight.normal,
                     ),
                     backgroundColor: isDark
-                        ? const Color(0xFF2D3E4B)
-                        : Colors.grey[100],
+                        ? const Color(0xFF21303D)
+                        : Colors.white.withValues(alpha: 0.8),
                     selectedColor: genre['color'] as Color,
                     onSelected: (_) => _selectGenre(genre['name'] as String),
                     shape: RoundedRectangleBorder(
@@ -192,8 +224,6 @@ class _ExploreScreenState extends State<ExploreScreen> {
             ),
           ),
           const SizedBox(height: 8),
-
-          // Results header
           if (!_loading)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -201,10 +231,10 @@ class _ExploreScreenState extends State<ExploreScreen> {
                 children: [
                   Text(
                     _selectedGenre != null
-                        ? '$_selectedGenre Books'
+                        ? '$_selectedGenre picks'
                         : (_searchController.text.isNotEmpty
-                              ? 'Search Results'
-                              : 'Popular Books'),
+                              ? 'Search results'
+                              : 'Trending shelves'),
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -212,16 +242,13 @@ class _ExploreScreenState extends State<ExploreScreen> {
                   ),
                   const Spacer(),
                   Text(
-                    '${_displayedBooks.length} books',
+                    '${_displayedBooks.length} shown',
                     style: TextStyle(color: Colors.grey[600], fontSize: 13),
                   ),
                 ],
               ),
             ),
-
           const SizedBox(height: 4),
-
-          // Book results
           Expanded(
             child: _loading
                 ? const Center(child: CircularProgressIndicator())
@@ -274,55 +301,29 @@ class _ExploreScreenState extends State<ExploreScreen> {
         );
       },
       child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
+        margin: const EdgeInsets.only(bottom: 14),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF2D3E4B) : Colors.white,
-          borderRadius: BorderRadius.circular(16),
+          color: isDark ? const Color(0xFF1B2833) : Colors.white,
+          borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.06),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
         child: Row(
           children: [
-            // Book cover
-            Container(
-              width: 60,
-              height: 85,
-              decoration: BoxDecoration(
-                color: book.displayColor,
-                borderRadius: BorderRadius.circular(8),
-                boxShadow: [
-                  BoxShadow(
-                    color: book.displayColor.withValues(alpha: 0.4),
-                    blurRadius: 6,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(4),
-                  child: Text(
-                    book.title,
-                    textAlign: TextAlign.center,
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 8,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
+            AppBookCover(
+              book: book,
+              width: 68,
+              height: 96,
+              borderRadius: 12,
+              compact: true,
             ),
-            const SizedBox(width: 12),
-            // Book info
+            const SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -336,61 +337,32 @@ class _ExploreScreenState extends State<ExploreScreen> {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 2),
+                  const SizedBox(height: 4),
                   Text(
                     book.author,
                     style: TextStyle(color: Colors.grey[600], fontSize: 13),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 6),
-                  Row(
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
-                      Icon(
-                        Icons.star,
-                        size: 14,
-                        color: Theme.of(context).colorScheme.primary,
+                      _MetaPill(
+                        icon: Icons.star_rounded,
+                        label: book.rating.toStringAsFixed(1),
                       ),
-                      const SizedBox(width: 4),
-                      Text(
-                        book.rating.toStringAsFixed(1),
-                        style: const TextStyle(fontSize: 12),
+                      _MetaPill(
+                        icon: Icons.school_outlined,
+                        label: book.keyStage,
                       ),
-                      const SizedBox(width: 12),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 2,
+                      if (book.subjects.isNotEmpty)
+                        _MetaPill(
+                          icon: Icons.sell_outlined,
+                          label: book.subjects.first,
                         ),
-                        decoration: BoxDecoration(
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.primary.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          book.keyStage,
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: Theme.of(context).colorScheme.primary,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                      if (book.subjects.isNotEmpty) ...[
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            book.subjects.take(2).join(', '),
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: Colors.grey[500],
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
                     ],
                   ),
                 ],
@@ -399,6 +371,39 @@ class _ExploreScreenState extends State<ExploreScreen> {
             Icon(Icons.chevron_right, color: Colors.grey[400]),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _MetaPill extends StatelessWidget {
+  const _MetaPill({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: Theme.of(context).colorScheme.primary),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              color: Theme.of(context).colorScheme.primary,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -82,4 +82,32 @@ class Book {
         return const Color(0xFF3A5F5C);
     }
   }
+
+  Color get secondaryDisplayColor {
+    switch (keyStage.toUpperCase()) {
+      case 'KS2':
+        return const Color(0xFF85B7C8);
+      case 'KS3':
+        return const Color(0xFF4B847F);
+      case 'KS4':
+        return const Color(0xFF8D6AA0);
+      case 'KS5':
+        return const Color(0xFFBD8757);
+      default:
+        return const Color(0xFF5D8882);
+    }
+  }
+
+  String get searchIndex {
+    final buffer = StringBuffer()
+      ..write(title.toLowerCase())
+      ..write(' ')
+      ..write(author.toLowerCase());
+    for (final subject in subjects) {
+      buffer
+        ..write(' ')
+        ..write(subject.toLowerCase());
+    }
+    return buffer.toString();
+  }
 }

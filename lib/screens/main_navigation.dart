@@ -25,20 +25,26 @@ class _MainNavigationState extends State<MainNavigation> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final selectedColor = theme.colorScheme.primary;
+    final unselectedColor = theme.colorScheme.onSurface.withValues(alpha: 0.58);
 
     return Scaffold(
-      body: _screens[_currentIndex],
+      body: IndexedStack(index: _currentIndex, children: _screens),
       bottomNavigationBar: Container(
+        margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
         decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(28),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.1),
-              blurRadius: 10,
-              offset: const Offset(0, -5),
+              color: Colors.black.withValues(alpha: isDark ? 0.18 : 0.08),
+              blurRadius: 24,
+              offset: const Offset(0, 10),
             ),
           ],
         ),
+        clipBehavior: Clip.antiAlias,
         child: NavigationBar(
           selectedIndex: _currentIndex,
           onDestinationSelected: (index) {
@@ -46,94 +52,50 @@ class _MainNavigationState extends State<MainNavigation> {
               _currentIndex = index;
             });
           },
-          backgroundColor: isDark ? const Color(0xFF1F2C34) : Colors.white,
-          indicatorColor: isDark
-              ? const Color(0xFF2D7A7B).withValues(alpha: 0.3)
-              : const Color(0xFFD2691E).withValues(alpha: 0.2),
+          height: 72,
+          backgroundColor: isDark
+              ? const Color(0xFF1F2C34).withValues(alpha: 0.94)
+              : Colors.white.withValues(alpha: 0.96),
+          indicatorColor: selectedColor.withValues(alpha: 0.14),
           destinations: [
             NavigationDestination(
               icon: Icon(
                 Icons.home_outlined,
-                color: _currentIndex == 0
-                    ? (isDark
-                          ? const Color(0xFF5BA9AA)
-                          : const Color(0xFFD2691E))
-                    : Colors.grey,
+                color: _currentIndex == 0 ? selectedColor : unselectedColor,
               ),
-              selectedIcon: Icon(
-                Icons.home,
-                color: isDark
-                    ? const Color(0xFF5BA9AA)
-                    : const Color(0xFFD2691E),
-              ),
+              selectedIcon: Icon(Icons.home, color: selectedColor),
               label: 'Home',
             ),
             NavigationDestination(
               icon: Icon(
                 Icons.search,
-                color: _currentIndex == 1
-                    ? (isDark
-                          ? const Color(0xFF5BA9AA)
-                          : const Color(0xFFD2691E))
-                    : Colors.grey,
+                color: _currentIndex == 1 ? selectedColor : unselectedColor,
               ),
-              selectedIcon: Icon(
-                Icons.search,
-                color: isDark
-                    ? const Color(0xFF5BA9AA)
-                    : const Color(0xFFD2691E),
-              ),
+              selectedIcon: Icon(Icons.search, color: selectedColor),
               label: 'Explore',
             ),
             NavigationDestination(
               icon: Icon(
                 Icons.library_books_outlined,
-                color: _currentIndex == 2
-                    ? (isDark
-                          ? const Color(0xFF5BA9AA)
-                          : const Color(0xFFD2691E))
-                    : Colors.grey,
+                color: _currentIndex == 2 ? selectedColor : unselectedColor,
               ),
-              selectedIcon: Icon(
-                Icons.library_books,
-                color: isDark
-                    ? const Color(0xFF5BA9AA)
-                    : const Color(0xFFD2691E),
-              ),
+              selectedIcon: Icon(Icons.library_books, color: selectedColor),
               label: 'My Library',
             ),
             NavigationDestination(
               icon: Icon(
                 Icons.groups_outlined,
-                color: _currentIndex == 3
-                    ? (isDark
-                          ? const Color(0xFF5BA9AA)
-                          : const Color(0xFFD2691E))
-                    : Colors.grey,
+                color: _currentIndex == 3 ? selectedColor : unselectedColor,
               ),
-              selectedIcon: Icon(
-                Icons.groups,
-                color: isDark
-                    ? const Color(0xFF5BA9AA)
-                    : const Color(0xFFD2691E),
-              ),
+              selectedIcon: Icon(Icons.groups, color: selectedColor),
               label: 'Community',
             ),
             NavigationDestination(
               icon: Icon(
                 Icons.person_outline,
-                color: _currentIndex == 4
-                    ? (isDark
-                          ? const Color(0xFF5BA9AA)
-                          : const Color(0xFFD2691E))
-                    : Colors.grey,
+                color: _currentIndex == 4 ? selectedColor : unselectedColor,
               ),
-              selectedIcon: Icon(
-                Icons.person,
-                color: isDark
-                    ? const Color(0xFF5BA9AA)
-                    : const Color(0xFFD2691E),
-              ),
+              selectedIcon: Icon(Icons.person, color: selectedColor),
               label: 'Profile',
             ),
           ],

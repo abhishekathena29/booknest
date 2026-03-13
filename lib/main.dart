@@ -4,11 +4,11 @@ import 'package:booknest/screens/main_navigation.dart';
 import 'package:booknest/screens/onboarding/onboarding_screen.dart';
 import 'package:booknest/screens/welcome/welcome_screen.dart';
 import 'package:booknest/services/library_service.dart';
+import 'package:booknest/theme/app_theme.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:booknest/screens/community/provider/forum_provider.dart';
 
@@ -35,34 +35,8 @@ class BookNestApp extends StatelessWidget {
     return MaterialApp(
       title: 'BookNest',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        colorScheme:
-            ColorScheme.fromSeed(
-              seedColor: const Color(0xFFD2691E),
-              brightness: Brightness.light,
-            ).copyWith(
-              primary: const Color(0xFFD2691E),
-              secondary: const Color(0xFF2D7A7B),
-              surface: const Color(0xFFFFF8F0),
-            ),
-        textTheme: GoogleFonts.crimsonProTextTheme(),
-        scaffoldBackgroundColor: const Color(0xFFFFF8F0),
-      ),
-      darkTheme: ThemeData(
-        useMaterial3: true,
-        colorScheme:
-            ColorScheme.fromSeed(
-              seedColor: const Color(0xFF2D7A7B),
-              brightness: Brightness.dark,
-            ).copyWith(
-              primary: const Color(0xFF2D7A7B),
-              secondary: const Color(0xFF5BA9AA),
-              surface: const Color(0xFF1A2730),
-            ),
-        textTheme: GoogleFonts.crimsonProTextTheme(ThemeData.dark().textTheme),
-        scaffoldBackgroundColor: const Color(0xFF1A2730),
-      ),
+      theme: AppTheme.light(),
+      darkTheme: AppTheme.dark(),
       themeMode: ThemeMode.system,
       home: const _AuthGate(),
     );
@@ -84,11 +58,11 @@ class _AuthGate extends StatelessWidget {
         if (user == null) {
           return const WelcomeScreen();
         }
-        return FutureBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-          future: FirebaseFirestore.instance
+        return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+          stream: FirebaseFirestore.instance
               .collection('users')
               .doc(user.uid)
-              .get(),
+              .snapshots(),
           builder: (context, userSnapshot) {
             if (userSnapshot.connectionState == ConnectionState.waiting) {
               return const _SplashLoading();

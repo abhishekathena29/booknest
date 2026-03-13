@@ -1,10 +1,11 @@
-import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+
 import '../../models/book.dart';
 import '../../services/book_repository.dart';
 import '../../utils/reading_level.dart';
+import '../../widgets/app_book_cover.dart';
 import '../chatbot/chatbot_screen.dart';
 import '../explore/book_detail_screen.dart';
 
@@ -22,9 +23,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    _booksFuture = _bookRepository.loadBooksFromAssets(
-      'assets/TRAIN_balanced.csv',
-    );
+    _booksFuture = _bookRepository.getBooks();
   }
 
   @override
@@ -46,7 +45,7 @@ class _HomeScreenState extends State<HomeScreen> {
               future: _booksFuture,
               builder: (context, booksSnapshot) {
                 if (!booksSnapshot.hasData) {
-                  return const Center(child: CircularProgressIndicator());
+                  return const _HomeLoadingView();
                 }
 
                 final books = booksSnapshot.data ?? [];
@@ -77,42 +76,89 @@ class _HomeScreenState extends State<HomeScreen> {
                   slivers: [
                     SliverToBoxAdapter(
                       child: Padding(
-                        padding: const EdgeInsets.all(16.0),
+                        padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+                        child: Container(
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [
+                                Theme.of(
+                                  context,
+                                ).colorScheme.primary.withValues(alpha: 0.16),
+                                Theme.of(
+                                  context,
+                                ).colorScheme.secondary.withValues(alpha: 0.09),
+                              ],
+                            ),
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                          child: Row(
+                            children: [
+                              CircleAvatar(
+                                radius: 28,
+                                backgroundColor: Theme.of(
+                                  context,
+                                ).colorScheme.primary.withValues(alpha: 0.18),
+                                child: Icon(
+                                  Icons.auto_stories_rounded,
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
+                              ),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Welcome back, $username',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .headlineSmall
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      'A handpicked shelf for your $userKeyStage reading band${lexileBand == null ? '' : ' • $lexileBand'}',
+                                      style: TextStyle(
+                                        color: Colors.grey[700],
+                                        fontSize: 15,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
                         child: Row(
                           children: [
-                            CircleAvatar(
-                              radius: 24,
-                              backgroundColor: Theme.of(
-                                context,
-                              ).colorScheme.primary.withValues(alpha: 0.2),
-                              child: Icon(
-                                Icons.person,
-                                color: Theme.of(context).colorScheme.primary,
+                            Expanded(
+                              child: _QuickStatCard(
+                                title: 'Comfort picks',
+                                value: recommendations.comfortReads.length
+                                    .clamp(0, 999)
+                                    .toString(),
+                                icon: Icons.menu_book_rounded,
                               ),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'For You, $username',
-                                    style: const TextStyle(
-                                      fontSize: 24,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  Text(
-                                    'Reading band $userKeyStage'
-                                    '${lexileBand == null ? '' : ' ($lexileBand)'}',
-                                    style: TextStyle(color: Colors.grey[600]),
-                                  ),
-                                ],
+                              child: _QuickStatCard(
+                                title: 'Stretch picks',
+                                value: recommendations.stretchReads.length
+                                    .clamp(0, 999)
+                                    .toString(),
+                                icon: Icons.trending_up_rounded,
                               ),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.notifications_outlined),
-                              onPressed: () {},
                             ),
                           ],
                         ),
@@ -120,7 +166,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     SliverToBoxAdapter(
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
                         child: _BandSummaryCard(
                           keyStage: userKeyStage,
                           confidence: confidence,
@@ -136,6 +182,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     _buildBookSection(
                       context: context,
                       title: 'Comfort Reads',
+                      subtitle: 'Books that should feel fluent and rewarding.',
                       books: recommendations.comfortReads,
                       emptyLabel:
                           'Complete onboarding to unlock your comfort reads.',
@@ -143,6 +190,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     _buildBookSection(
                       context: context,
                       title: 'Stretch Reads',
+                      subtitle:
+                          'A little more ambitious without losing the plot.',
                       books: recommendations.stretchReads,
                       emptyLabel:
                           'Stretch reads appear after we are confident in your band.',
@@ -150,6 +199,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     _buildBookSection(
                       context: context,
                       title: 'Explore More Titles',
+                      subtitle: 'Fresh covers from the wider BookNest catalog.',
                       books: books.take(8).toList(),
                       emptyLabel: 'No books loaded yet.',
                     ),
@@ -177,6 +227,7 @@ class _HomeScreenState extends State<HomeScreen> {
   SliverToBoxAdapter _buildBookSection({
     required BuildContext context,
     required String title,
+    required String subtitle,
     required List<Book> books,
     required String emptyLabel,
   }) {
@@ -185,16 +236,26 @@ class _HomeScreenState extends State<HomeScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Text(
-              title,
-              style: Theme.of(
-                context,
-              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+            padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  subtitle,
+                  style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                ),
+              ],
             ),
           ),
           SizedBox(
-            height: 320,
+            height: 300,
             child: books.isEmpty
                 ? Center(
                     child: Text(
@@ -204,7 +265,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   )
                 : ListView.builder(
                     scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
                     itemCount: books.length.clamp(0, 12).toInt(),
                     itemBuilder: (context, index) {
                       return _buildBookCard(context, books[index]);
@@ -225,101 +286,17 @@ class _HomeScreenState extends State<HomeScreen> {
         );
       },
       child: Container(
-        width: 160,
+        width: 172,
         margin: const EdgeInsets.only(right: 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              height: 200,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    book.displayColor,
-                    book.displayColor.withValues(alpha: 0.7),
-                  ],
-                ),
-                borderRadius: BorderRadius.circular(14),
-                boxShadow: [
-                  BoxShadow(
-                    color: book.displayColor.withValues(alpha: 0.35),
-                    blurRadius: 12,
-                    offset: const Offset(0, 6),
-                  ),
-                ],
-              ),
-              child: Stack(
-                children: [
-                  // Subtle pattern overlay
-                  Positioned(
-                    right: -20,
-                    top: -20,
-                    child: Container(
-                      width: 100,
-                      height: 100,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.white.withValues(alpha: 0.06),
-                      ),
-                    ),
-                  ),
-                  Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(12),
-                      child: Text(
-                        book.title,
-                        textAlign: TextAlign.center,
-                        maxLines: 4,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold,
-                          height: 1.3,
-                        ),
-                      ),
-                    ),
-                  ),
-                  // Rating badge
-                  Positioned(
-                    bottom: 8,
-                    right: 8,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 3,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.25),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.star, size: 12, color: Colors.amber),
-                          const SizedBox(width: 2),
-                          Text(
-                            book.rating.toStringAsFixed(1),
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 8),
+            AppBookCover(book: book, width: 172, height: 204),
+            const SizedBox(height: 10),
             Text(
               book.title,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-              maxLines: 2,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+              maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
             Text(
@@ -328,18 +305,19 @@ class _HomeScreenState extends State<HomeScreen> {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
+            const SizedBox(height: 8),
             Row(
               children: [
                 Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 6,
-                    vertical: 2,
+                    horizontal: 8,
+                    vertical: 4,
                   ),
                   decoration: BoxDecoration(
                     color: Theme.of(
                       context,
                     ).colorScheme.primary.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(6),
+                    borderRadius: BorderRadius.circular(999),
                   ),
                   child: Text(
                     book.keyStage,
@@ -349,6 +327,17 @@ class _HomeScreenState extends State<HomeScreen> {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
+                ),
+                const Spacer(),
+                Icon(
+                  Icons.star_rounded,
+                  size: 16,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  book.rating.toStringAsFixed(1),
+                  style: const TextStyle(fontWeight: FontWeight.w700),
                 ),
               ],
             ),
@@ -377,7 +366,7 @@ class _BandSummaryCard extends StatelessWidget {
     final confidenceLabel = (confidence * 100).toStringAsFixed(0);
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: isDark
@@ -387,7 +376,7 @@ class _BandSummaryCard extends StatelessWidget {
                   Theme.of(context).colorScheme.primary.withValues(alpha: 0.04),
                 ],
         ),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(24),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -414,14 +403,14 @@ class _BandSummaryCard extends StatelessWidget {
             children: [
               Expanded(
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
+                  borderRadius: BorderRadius.circular(999),
                   child: LinearProgressIndicator(
                     value: confidence,
                     backgroundColor: Colors.grey[300],
                     valueColor: AlwaysStoppedAnimation(
                       Theme.of(context).colorScheme.primary,
                     ),
-                    minHeight: 6,
+                    minHeight: 8,
                   ),
                 ),
               ),
@@ -436,7 +425,7 @@ class _BandSummaryCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
           Row(
             children: [
               _buildBadge(context, 'Comfort', comfortStage, Icons.spa_outlined),
@@ -462,10 +451,10 @@ class _BandSummaryCard extends StatelessWidget {
   ) {
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(14),
         ),
         child: Row(
           children: [
@@ -489,6 +478,84 @@ class _BandSummaryCard extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _QuickStatCard extends StatelessWidget {
+  const _QuickStatCard({
+    required this.title,
+    required this.value,
+    required this.icon,
+  });
+
+  final String title;
+  final String value;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(22),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Theme.of(
+                context,
+              ).colorScheme.primary.withValues(alpha: 0.12),
+            ),
+            child: Icon(icon, color: Theme.of(context).colorScheme.primary),
+          ),
+          const SizedBox(width: 12),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: TextStyle(color: Colors.grey[600], fontSize: 13),
+              ),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HomeLoadingView extends StatelessWidget {
+  const _HomeLoadingView();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          CircularProgressIndicator(
+            color: Theme.of(context).colorScheme.primary,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Preparing your library...',
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+        ],
       ),
     );
   }

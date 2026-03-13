@@ -145,9 +145,23 @@ class _OnboardingBodyState extends State<_OnboardingBody> {
                           onPressed: provider.canProceed
                               ? () async {
                                   if (isLastPage) {
-                                    await provider.saveOnboarding();
-                                    if (context.mounted) {
-                                      _goToMainNavigation();
+                                    try {
+                                      await provider.saveOnboarding();
+                                      if (context.mounted) {
+                                        _goToMainNavigation();
+                                      }
+                                    } catch (_) {
+                                      if (context.mounted &&
+                                          provider.saveError != null) {
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          SnackBar(
+                                            content: Text(provider.saveError!),
+                                            behavior: SnackBarBehavior.floating,
+                                          ),
+                                        );
+                                      }
                                     }
                                   } else {
                                     provider.nextStep();

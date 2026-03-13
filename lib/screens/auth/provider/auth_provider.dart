@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 class AuthProvider extends ChangeNotifier {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -85,5 +87,52 @@ class AuthProvider extends ChangeNotifier {
 
   Future<void> signOut() async {
     await _auth.signOut();
+  }
+
+  Future<bool> signInWithGoogle() async {
+    setLoading(true);
+    setError(null);
+    try {
+      UserCredential credential;
+      if (kIsWeb) {
+        final googleProvider = GoogleAuthProvider();
+        googleProvider.addScope('email');
+        googleProvider.setCustomParameters({'login_hint': 'user@example.com'});
+        credential = await _auth.signInWithPopup(googleProvider);
+      } else {
+        final googleUser = await GoogleSignIn.instance.authenticate();
+        final googleAuth = googleUser.authentication;
+        final oauthCredential = GoogleAuthProvider.credential(
+          idToken: googleAuth.idToken,
+        );
+        credential = await _auth.signInWithCredential(oauthCredential);
+      }
+
+      final user = credential.user;
+      if (user == null) {
+        return false;
+      }
+
+      final userRef = FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid);
+      final doc = await userRef.get();
+      if (!doc.exists) {
+        await userRef.set({
+          'email': user.email,
+          'username':
+              user.displayName ?? user.email?.split('@').first ?? 'Reader',
+          'createdAt': Timestamp.now(),
+          'onboarding_completed': false,
+        });
+      }
+      return true;
+    } catch (e) {
+      debugPrint(e.toString());
+      setError(e.toString());
+      return false;
+    } finally {
+      setLoading(false);
+    }
   }
 }

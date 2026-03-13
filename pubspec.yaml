@@ -38,9 +38,10 @@ dependencies:
   flutter_svg: ^2.0.9
   firebase_core:
   firebase_auth:
+  google_sign_in: 
   cloud_firestore:
   provider:
-  csv: ^5.1.1
+  csv:
   
 dev_dependencies:
   flutter_test:

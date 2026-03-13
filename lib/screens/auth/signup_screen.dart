@@ -51,9 +51,9 @@ class _SignUpScreenState extends State<SignUpScreen>
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFF1A2730), Color(0xFF2D3E4B), Color(0xFF1F2C34)],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFFFFF8F0), Color(0xFFF5E6D3)],
           ),
         ),
         child: SafeArea(
@@ -74,12 +74,12 @@ class _SignUpScreenState extends State<SignUpScreen>
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             color: const Color(
-                              0xFF3BA1C7,
+                              0xFFD2691E,
                             ).withValues(alpha: 0.2),
                             boxShadow: [
                               BoxShadow(
                                 color: const Color(
-                                  0xFF3BA1C7,
+                                  0xFFD2691E,
                                 ).withValues(alpha: 0.3),
                                 blurRadius: 20,
                                 spreadRadius: 5,
@@ -88,7 +88,7 @@ class _SignUpScreenState extends State<SignUpScreen>
                           ),
                           child: const Icon(
                             Icons.person_add_rounded,
-                            color: Color(0xFF3BA1C7),
+                            color: Color(0xFFD2691E),
                             size: 40,
                           ),
                         ),
@@ -98,7 +98,7 @@ class _SignUpScreenState extends State<SignUpScreen>
                           style: TextStyle(
                             fontSize: 32,
                             fontWeight: FontWeight.bold,
-                            color: Colors.white,
+                            color: Color(0xFF1A2730),
                             letterSpacing: 0.5,
                           ),
                         ),
@@ -107,7 +107,7 @@ class _SignUpScreenState extends State<SignUpScreen>
                           'Start your reading journey today',
                           style: TextStyle(
                             fontSize: 16,
-                            color: Colors.grey[400],
+                            color: Colors.grey[700],
                           ),
                         ),
                       ],
@@ -164,7 +164,7 @@ class _SignUpScreenState extends State<SignUpScreen>
                               ? const Center(
                                   child: CircularProgressIndicator(
                                     valueColor: AlwaysStoppedAnimation(
-                                      Color(0xFF3BA1C7),
+                                      Color(0xFFD2691E),
                                     ),
                                   ),
                                 )
@@ -225,10 +225,10 @@ class _SignUpScreenState extends State<SignUpScreen>
                                     }
                                   },
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFF3BA1C7),
+                                    backgroundColor: const Color(0xFFD2691E),
                                     foregroundColor: Colors.white,
                                     shadowColor: const Color(
-                                      0xFF3BA1C7,
+                                      0xFFD2691E,
                                     ).withValues(alpha: 0.5),
                                     elevation: 8,
                                     shape: RoundedRectangleBorder(
@@ -254,7 +254,7 @@ class _SignUpScreenState extends State<SignUpScreen>
                       children: [
                         Text(
                           'Already have an account?',
-                          style: TextStyle(color: Colors.grey[400]),
+                          style: TextStyle(color: Colors.grey[700]),
                         ),
                         TextButton(
                           onPressed: () {
@@ -268,7 +268,7 @@ class _SignUpScreenState extends State<SignUpScreen>
                           child: const Text(
                             'Log In',
                             style: TextStyle(
-                              color: Color(0xFF5BA9AA),
+                              color: Color(0xFF1A2730),
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -296,11 +296,11 @@ class _SignUpScreenState extends State<SignUpScreen>
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF2D3E4B),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
+            color: Colors.black.withValues(alpha: 0.06),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -310,16 +310,16 @@ class _SignUpScreenState extends State<SignUpScreen>
         controller: controller,
         obscureText: isPassword && obscureText,
         keyboardType: keyboardType,
-        style: const TextStyle(color: Colors.white),
+        style: const TextStyle(color: Color(0xFF1A2730)),
         decoration: InputDecoration(
           labelText: label,
-          labelStyle: TextStyle(color: Colors.grey[400]),
-          prefixIcon: Icon(icon, color: Colors.grey[400]),
+          labelStyle: TextStyle(color: Colors.grey[700]),
+          prefixIcon: Icon(icon, color: Colors.grey[600]),
           suffixIcon: isPassword
               ? IconButton(
                   icon: Icon(
                     obscureText ? Icons.visibility_off : Icons.visibility,
-                    color: Colors.grey[400],
+                    color: Colors.grey[600],
                   ),
                   onPressed: onToggleVisibility,
                 )

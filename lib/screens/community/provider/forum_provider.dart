@@ -53,8 +53,12 @@ class ForumProvider extends ChangeNotifier {
   Future<void> createForum({
     required String title,
     required String description,
+    required String bookId,
+    required String bookTitle,
+    required String bookAuthor,
     String? initialPostTitle,
     String? initialPostContent,
+    List<String>? initialPostTags,
   }) async {
     final user = currentUser;
     if (user == null) {
@@ -69,6 +73,9 @@ class ForumProvider extends ChangeNotifier {
     batch.set(forumRef, {
       'title': title,
       'description': description,
+      'bookId': bookId,
+      'bookTitle': bookTitle,
+      'bookAuthor': bookAuthor,
       'createdBy': user.uid,
       'createdByName': user.displayName ?? user.email ?? 'Reader',
       'createdAt': FieldValue.serverTimestamp(),
@@ -81,9 +88,13 @@ class ForumProvider extends ChangeNotifier {
       batch.set(postRef, {
         'title': initialPostTitle,
         'content': initialPostContent,
+        'tags': initialPostTags ?? <String>[],
         'createdBy': user.uid,
         'createdByName': user.displayName ?? user.email ?? 'Reader',
         'createdAt': FieldValue.serverTimestamp(),
+        'likeCount': 0,
+        'commentCount': 0,
+        'likedBy': <String>[],
       });
     }
 
@@ -94,6 +105,7 @@ class ForumProvider extends ChangeNotifier {
     required String forumId,
     required String title,
     required String content,
+    List<String> tags = const [],
   }) async {
     final user = currentUser;
     if (user == null) {
@@ -107,9 +119,13 @@ class ForumProvider extends ChangeNotifier {
     batch.set(postRef, {
       'title': title,
       'content': content,
+      'tags': tags,
       'createdBy': user.uid,
       'createdByName': user.displayName ?? user.email ?? 'Reader',
       'createdAt': FieldValue.serverTimestamp(),
+      'likeCount': 0,
+      'commentCount': 0,
+      'likedBy': <String>[],
     });
     batch.update(forumRef, {
       'postCount': FieldValue.increment(1),
@@ -117,5 +133,83 @@ class ForumProvider extends ChangeNotifier {
     });
 
     await batch.commit();
+  }
+
+  Stream<QuerySnapshot<Map<String, dynamic>>> commentsStream({
+    required String forumId,
+    required String postId,
+  }) {
+    return _firestore
+        .collection('forums')
+        .doc(forumId)
+        .collection('posts')
+        .doc(postId)
+        .collection('comments')
+        .orderBy('createdAt', descending: false)
+        .snapshots();
+  }
+
+  Future<void> addComment({
+    required String forumId,
+    required String postId,
+    required String content,
+  }) async {
+    final user = currentUser;
+    if (user == null) {
+      throw StateError('User not signed in.');
+    }
+    final postRef = _firestore
+        .collection('forums')
+        .doc(forumId)
+        .collection('posts')
+        .doc(postId);
+    final commentRef = postRef.collection('comments').doc();
+    final batch = _firestore.batch();
+    batch.set(commentRef, {
+      'content': content,
+      'createdBy': user.uid,
+      'createdByName': user.displayName ?? user.email ?? 'Reader',
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+    batch.update(postRef, {
+      'commentCount': FieldValue.increment(1),
+    });
+    await batch.commit();
+  }
+
+  Future<void> toggleLike({
+    required String forumId,
+    required String postId,
+  }) async {
+    final user = currentUser;
+    if (user == null) {
+      throw StateError('User not signed in.');
+    }
+    final postRef = _firestore
+        .collection('forums')
+        .doc(forumId)
+        .collection('posts')
+        .doc(postId);
+    await _firestore.runTransaction((transaction) async {
+      final snapshot = await transaction.get(postRef);
+      final data = snapshot.data() ?? {};
+      final likedBy =
+          (data['likedBy'] as List<dynamic>?)
+              ?.map((value) => value.toString())
+              .toList() ??
+          <String>[];
+      final hasLiked = likedBy.contains(user.uid);
+      if (hasLiked) {
+        transaction.update(postRef, {
+          'likedBy': FieldValue.arrayRemove([user.uid]),
+          'likeCount': FieldValue.increment(-1),
+        });
+      } else {
+        transaction.update(postRef, {
+          'likedBy': FieldValue.arrayUnion([user.uid]),
+          'likeCount': FieldValue.increment(1),
+        });
+      }
+    });
   }
 }

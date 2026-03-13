@@ -49,9 +49,9 @@ class _LoginScreenState extends State<LoginScreen>
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFF1A2730), Color(0xFF2D3E4B), Color(0xFF1F2C34)],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFFFFF8F0), Color(0xFFF5E6D3)],
           ),
         ),
         child: SafeArea(
@@ -72,12 +72,12 @@ class _LoginScreenState extends State<LoginScreen>
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             color: const Color(
-                              0xFF2D7A7B,
+                              0xFFD2691E,
                             ).withValues(alpha: 0.2),
                             boxShadow: [
                               BoxShadow(
                                 color: const Color(
-                                  0xFF2D7A7B,
+                                  0xFFD2691E,
                                 ).withValues(alpha: 0.3),
                                 blurRadius: 20,
                                 spreadRadius: 5,
@@ -86,7 +86,7 @@ class _LoginScreenState extends State<LoginScreen>
                           ),
                           child: const Icon(
                             Icons.menu_book_rounded,
-                            color: Color(0xFF2D7A7B),
+                            color: Color(0xFFD2691E),
                             size: 48,
                           ),
                         ),
@@ -96,7 +96,7 @@ class _LoginScreenState extends State<LoginScreen>
                           style: TextStyle(
                             fontSize: 32,
                             fontWeight: FontWeight.bold,
-                            color: Colors.white,
+                            color: Color(0xFF1A2730),
                             letterSpacing: 0.5,
                           ),
                         ),
@@ -105,7 +105,7 @@ class _LoginScreenState extends State<LoginScreen>
                           'Sign in to continue your reading journey',
                           style: TextStyle(
                             fontSize: 16,
-                            color: Colors.grey[400],
+                            color: Colors.grey[700],
                           ),
                         ),
                       ],
@@ -134,7 +134,7 @@ class _LoginScreenState extends State<LoginScreen>
                         child: const Text(
                           'Forgot Password?',
                           style: TextStyle(
-                            color: Color(0xFF5BA9AA),
+                            color: Color(0xFF2D7A7B),
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -151,7 +151,7 @@ class _LoginScreenState extends State<LoginScreen>
                               ? const Center(
                                   child: CircularProgressIndicator(
                                     valueColor: AlwaysStoppedAnimation(
-                                      Color(0xFF2D7A7B),
+                                      Color(0xFFD2691E),
                                     ),
                                   ),
                                 )
@@ -165,62 +165,7 @@ class _LoginScreenState extends State<LoginScreen>
 
                                     if (context.mounted) {
                                       if (success) {
-                                        final uid = FirebaseAuth
-                                            .instance
-                                            .currentUser
-                                            ?.uid;
-                                        if (uid != null) {
-                                          var completed = false;
-                                          try {
-                                            final doc = await FirebaseFirestore
-                                                .instance
-                                                .collection('users')
-                                                .doc(uid)
-                                                .get();
-                                            if (doc.exists) {
-                                              completed =
-                                                  doc.data()?['onboarding_completed'] ==
-                                                  true;
-                                            }
-                                          } catch (e) {
-                                            completed = true;
-                                            if (context.mounted) {
-                                              ScaffoldMessenger.of(
-                                                context,
-                                              ).showSnackBar(
-                                                SnackBar(
-                                                  content: Text(
-                                                    'Could not load profile. Continuing...',
-                                                    style: const TextStyle(
-                                                      color: Colors.white,
-                                                    ),
-                                                  ),
-                                                  backgroundColor:
-                                                      Colors.orangeAccent,
-                                                  behavior:
-                                                      SnackBarBehavior.floating,
-                                                  shape: RoundedRectangleBorder(
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                          10,
-                                                        ),
-                                                  ),
-                                                ),
-                                              );
-                                            }
-                                          }
-                                          if (context.mounted) {
-                                            Navigator.pushAndRemoveUntil(
-                                              context,
-                                              MaterialPageRoute(
-                                                builder: (context) => completed
-                                                    ? const MainNavigation()
-                                                    : const OnboardingScreen(),
-                                              ),
-                                              (route) => false,
-                                            );
-                                          }
-                                        }
+                                        await _handlePostAuthNavigation(context);
                                       } else {
                                         ScaffoldMessenger.of(
                                           context,
@@ -245,10 +190,10 @@ class _LoginScreenState extends State<LoginScreen>
                                     }
                                   },
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFF2D7A7B),
+                                    backgroundColor: const Color(0xFFD2691E),
                                     foregroundColor: Colors.white,
                                     shadowColor: const Color(
-                                      0xFF2D7A7B,
+                                      0xFFD2691E,
                                     ).withValues(alpha: 0.5),
                                     elevation: 8,
                                     shape: RoundedRectangleBorder(
@@ -272,46 +217,67 @@ class _LoginScreenState extends State<LoginScreen>
                     Row(
                       children: [
                         Expanded(
-                          child: Divider(color: Colors.grey[800], thickness: 1),
+                          child: Divider(color: Colors.grey[300], thickness: 1),
                         ),
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           child: Text(
                             'OR',
                             style: TextStyle(
-                              color: Colors.grey[500],
+                              color: Colors.grey[600],
                               fontSize: 14,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
                         ),
                         Expanded(
-                          child: Divider(color: Colors.grey[800], thickness: 1),
+                          child: Divider(color: Colors.grey[300], thickness: 1),
                         ),
                       ],
                     ),
                     const SizedBox(height: 32),
 
                     // Social Login
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        _buildSocialButton(
-                          icon: Icons.g_mobiledata, // Placeholder for Google
-                          label: 'Google',
+                    Consumer<app_auth.AuthProvider>(
+                      builder: (context, authProvider, child) {
+                        return _buildSocialButton(
+                          leading: Image.asset(
+                            'assets/google.png',
+                            height: 20,
+                          ),
+                          label: 'Continue with Google',
                           color: Colors.white,
                           textColor: Colors.black,
-                          onPressed: () {},
-                        ),
-                        const SizedBox(width: 16),
-                        _buildSocialButton(
-                          icon: Icons.apple,
-                          label: 'Apple',
-                          color: Colors.white,
-                          textColor: Colors.black,
-                          onPressed: () {},
-                        ),
-                      ],
+                          onPressed: authProvider.loading
+                              ? null
+                              : () async {
+                                  final success =
+                                      await authProvider.signInWithGoogle();
+                                  if (!context.mounted) return;
+                                  if (success) {
+                                    await _handlePostAuthNavigation(context);
+                                  } else {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          authProvider.error ??
+                                              'Google sign-in failed',
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                        backgroundColor: Colors.redAccent,
+                                        behavior: SnackBarBehavior.floating,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(10),
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                },
+                        );
+                      },
                     ),
 
                     const SizedBox(height: 40),
@@ -322,7 +288,7 @@ class _LoginScreenState extends State<LoginScreen>
                       children: [
                         Text(
                           "Don't have an account?",
-                          style: TextStyle(color: Colors.grey[400]),
+                          style: TextStyle(color: Colors.grey[700]),
                         ),
                         TextButton(
                           onPressed: () {
@@ -336,7 +302,7 @@ class _LoginScreenState extends State<LoginScreen>
                           child: const Text(
                             'Sign Up',
                             style: TextStyle(
-                              color: Color(0xFF5BA9AA),
+                              color: Color(0xFF1A2730),
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -361,11 +327,11 @@ class _LoginScreenState extends State<LoginScreen>
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF2D3E4B),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
+            color: Colors.black.withValues(alpha: 0.06),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -374,16 +340,16 @@ class _LoginScreenState extends State<LoginScreen>
       child: TextField(
         controller: controller,
         obscureText: isPassword && _obscurePassword,
-        style: const TextStyle(color: Colors.white),
+        style: const TextStyle(color: Color(0xFF1A2730)),
         decoration: InputDecoration(
           labelText: label,
-          labelStyle: TextStyle(color: Colors.grey[400]),
-          prefixIcon: Icon(icon, color: Colors.grey[400]),
+          labelStyle: TextStyle(color: Colors.grey[700]),
+          prefixIcon: Icon(icon, color: Colors.grey[600]),
           suffixIcon: isPassword
               ? IconButton(
                   icon: Icon(
                     _obscurePassword ? Icons.visibility_off : Icons.visibility,
-                    color: Colors.grey[400],
+                    color: Colors.grey[600],
                   ),
                   onPressed: () {
                     setState(() {
@@ -407,29 +373,78 @@ class _LoginScreenState extends State<LoginScreen>
   }
 
   Widget _buildSocialButton({
-    required IconData icon,
+    required Widget leading,
     required String label,
     required Color color,
     required Color textColor,
-    required VoidCallback onPressed,
+    required VoidCallback? onPressed,
   }) {
-    return Expanded(
-      child: ElevatedButton.icon(
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton(
         onPressed: onPressed,
-        icon: Icon(icon, color: textColor),
-        label: Text(
-          label,
-          style: TextStyle(color: textColor, fontWeight: FontWeight.bold),
-        ),
         style: ElevatedButton.styleFrom(
           backgroundColor: color,
           foregroundColor: textColor,
-          padding: const EdgeInsets.symmetric(vertical: 12),
+          padding: const EdgeInsets.symmetric(vertical: 14),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
         ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            leading,
+            const SizedBox(width: 12),
+            Text(
+              label,
+              style: TextStyle(color: textColor, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
       ),
     );
+  }
+
+  Future<void> _handlePostAuthNavigation(BuildContext context) async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+    var completed = false;
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .get();
+      if (doc.exists) {
+        completed = doc.data()?['onboarding_completed'] == true;
+      }
+    } catch (e) {
+      completed = true;
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Could not load profile. Continuing...',
+              style: const TextStyle(color: Colors.white),
+            ),
+            backgroundColor: Colors.orangeAccent,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+        );
+      }
+    }
+    if (context.mounted) {
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(
+          builder: (context) =>
+              completed ? const MainNavigation() : const OnboardingScreen(),
+        ),
+        (route) => false,
+      );
+    }
   }
 }

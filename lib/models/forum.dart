@@ -5,6 +5,9 @@ class Forum {
     required this.id,
     required this.title,
     required this.description,
+    required this.bookId,
+    required this.bookTitle,
+    required this.bookAuthor,
     required this.createdBy,
     required this.createdByName,
     required this.createdAt,
@@ -15,6 +18,9 @@ class Forum {
   final String id;
   final String title;
   final String description;
+  final String bookId;
+  final String bookTitle;
+  final String bookAuthor;
   final String createdBy;
   final String createdByName;
   final DateTime? createdAt;
@@ -27,6 +33,9 @@ class Forum {
       id: snapshot.id,
       title: (data['title'] as String?) ?? 'Untitled forum',
       description: (data['description'] as String?) ?? '',
+      bookId: (data['bookId'] as String?) ?? '',
+      bookTitle: (data['bookTitle'] as String?) ?? 'Unknown book',
+      bookAuthor: (data['bookAuthor'] as String?) ?? '',
       createdBy: (data['createdBy'] as String?) ?? '',
       createdByName: (data['createdByName'] as String?) ?? 'Reader',
       createdAt: _parseTimestamp(data['createdAt']),

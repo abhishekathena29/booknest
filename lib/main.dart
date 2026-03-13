@@ -1,7 +1,11 @@
 import 'package:booknest/firebase_options.dart';
 import 'package:booknest/screens/auth/provider/auth_provider.dart';
+import 'package:booknest/screens/main_navigation.dart';
+import 'package:booknest/screens/onboarding/onboarding_screen.dart';
 import 'package:booknest/screens/welcome/welcome_screen.dart';
 import 'package:booknest/services/library_service.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -60,7 +64,55 @@ class BookNestApp extends StatelessWidget {
         scaffoldBackgroundColor: const Color(0xFF1A2730),
       ),
       themeMode: ThemeMode.system,
-      home: const WelcomeScreen(),
+      home: const _AuthGate(),
     );
+  }
+}
+
+class _AuthGate extends StatelessWidget {
+  const _AuthGate();
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.authStateChanges(),
+      builder: (context, authSnapshot) {
+        if (authSnapshot.connectionState == ConnectionState.waiting) {
+          return const _SplashLoading();
+        }
+        final user = authSnapshot.data;
+        if (user == null) {
+          return const WelcomeScreen();
+        }
+        return FutureBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+          future: FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .get(),
+          builder: (context, userSnapshot) {
+            if (userSnapshot.connectionState == ConnectionState.waiting) {
+              return const _SplashLoading();
+            }
+            if (userSnapshot.hasError) {
+              return const MainNavigation();
+            }
+            final data = userSnapshot.data?.data();
+            final completed = data?['onboarding_completed'] == true;
+            return completed
+                ? const MainNavigation()
+                : const OnboardingScreen();
+          },
+        );
+      },
+    );
+  }
+}
+
+class _SplashLoading extends StatelessWidget {
+  const _SplashLoading();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(body: Center(child: CircularProgressIndicator()));
   }
 }

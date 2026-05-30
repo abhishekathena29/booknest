@@ -276,6 +276,7 @@ class _ForumDetailScreenState extends State<ForumDetailScreen> {
             ],
           ),
           floatingActionButton: FloatingActionButton.extended(
+            heroTag: 'forum_detail_new_post_fab',
             onPressed: _showCreatePostDialog,
             icon: const Icon(Icons.edit, color: Colors.white),
             label: const Text(

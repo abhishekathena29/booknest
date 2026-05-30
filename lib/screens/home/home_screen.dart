@@ -96,14 +96,27 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                           child: Row(
                             children: [
-                              CircleAvatar(
-                                radius: 28,
-                                backgroundColor: Theme.of(
-                                  context,
-                                ).colorScheme.primary.withValues(alpha: 0.18),
-                                child: Icon(
-                                  Icons.auto_stories_rounded,
-                                  color: Theme.of(context).colorScheme.primary,
+                              Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Colors.white,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .primary
+                                          .withValues(alpha: 0.18),
+                                      blurRadius: 12,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
+                                ),
+                                child: Image.asset(
+                                  'assets/icon.png',
+                                  height: 44,
+                                  width: 44,
+                                  fit: BoxFit.contain,
                                 ),
                               ),
                               const SizedBox(width: 14),
@@ -212,6 +225,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
       floatingActionButton: FloatingActionButton(
+        heroTag: 'home_chatbot_fab',
         onPressed: () {
           Navigator.push(
             context,

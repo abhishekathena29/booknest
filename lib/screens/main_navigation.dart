@@ -88,7 +88,7 @@ class _MainNavigationState extends State<MainNavigation> {
                 color: _currentIndex == 3 ? selectedColor : unselectedColor,
               ),
               selectedIcon: Icon(Icons.groups, color: selectedColor),
-              label: 'Community',
+              label: 'Forum',
             ),
             NavigationDestination(
               icon: Icon(

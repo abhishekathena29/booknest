@@ -23,10 +23,7 @@ class DefaultFirebaseOptions {
       case TargetPlatform.android:
         return android;
       case TargetPlatform.iOS:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for ios - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
+        return ios;
       case TargetPlatform.macOS:
         throw UnsupportedError(
           'DefaultFirebaseOptions have not been configured for macos - '
@@ -61,9 +58,20 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyAm-Mv7dx5ju2GbhNsP2moHJrHSvTPn8vw',
-    appId: '1:557370116166:android:8ee472e0c1e9412a94e247',
+    appId: '1:557370116166:android:a24b4f01e20b640c94e247',
     messagingSenderId: '557370116166',
     projectId: 'booknest-1d33b',
     storageBucket: 'booknest-1d33b.firebasestorage.app',
   );
+
+  static const FirebaseOptions ios = FirebaseOptions(
+    apiKey: 'AIzaSyDVdpSScciZTqO07_UV3ujXgZtpLOtYqjA',
+    appId: '1:557370116166:ios:67c3b19dd268366e94e247',
+    messagingSenderId: '557370116166',
+    projectId: 'booknest-1d33b',
+    storageBucket: 'booknest-1d33b.firebasestorage.app',
+    iosClientId: '557370116166-ehfjeapb4s6pe0h1kpc6a38oh44h6v64.apps.googleusercontent.com',
+    iosBundleId: 'com.booknest.aarav',
+  );
+
 }

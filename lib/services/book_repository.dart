@@ -163,7 +163,7 @@ class BookRepository {
 }
 
 List<Map<String, dynamic>> _parseBooksCsv(String csvData) {
-  final rows = const CsvToListConverter().convert(csvData);
+  final rows = CsvDecoder().convert(csvData);
   if (rows.isEmpty) return const [];
 
   final headers = rows.first.map((header) => header.toString().trim()).toList();

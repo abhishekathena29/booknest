@@ -70,26 +70,25 @@ class _SignUpScreenState extends State<SignUpScreen>
                     Column(
                       children: [
                         Container(
-                          padding: const EdgeInsets.all(16),
+                          padding: const EdgeInsets.all(14),
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: const Color(
-                              0xFFD2691E,
-                            ).withValues(alpha: 0.2),
+                            color: Colors.white,
                             boxShadow: [
                               BoxShadow(
                                 color: const Color(
                                   0xFFD2691E,
-                                ).withValues(alpha: 0.3),
-                                blurRadius: 20,
-                                spreadRadius: 5,
+                                ).withValues(alpha: 0.25),
+                                blurRadius: 24,
+                                spreadRadius: 2,
                               ),
                             ],
                           ),
-                          child: const Icon(
-                            Icons.person_add_rounded,
-                            color: Color(0xFFD2691E),
-                            size: 40,
+                          child: Image.asset(
+                            'assets/icon.png',
+                            height: 64,
+                            width: 64,
+                            fit: BoxFit.contain,
                           ),
                         ),
                         const SizedBox(height: 24),
@@ -310,10 +309,14 @@ class _SignUpScreenState extends State<SignUpScreen>
         controller: controller,
         obscureText: isPassword && obscureText,
         keyboardType: keyboardType,
-        style: const TextStyle(color: Color(0xFF1A2730)),
+        style: const TextStyle(color: Color(0xFF1A2730), fontSize: 16),
+        cursorColor: const Color(0xFFD2691E),
         decoration: InputDecoration(
+          filled: true,
+          fillColor: Colors.white,
           labelText: label,
           labelStyle: TextStyle(color: Colors.grey[700]),
+          floatingLabelStyle: const TextStyle(color: Color(0xFFD2691E)),
           prefixIcon: Icon(icon, color: Colors.grey[600]),
           suffixIcon: isPassword
               ? IconButton(
@@ -324,6 +327,14 @@ class _SignUpScreenState extends State<SignUpScreen>
                   onPressed: onToggleVisibility,
                 )
               : null,
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide.none,
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: const BorderSide(color: Color(0xFFD2691E), width: 1.5),
+          ),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
             borderSide: BorderSide.none,

@@ -36,8 +36,8 @@ class BookNestApp extends StatelessWidget {
       title: 'BookNest',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),
-      darkTheme: AppTheme.dark(),
-      themeMode: ThemeMode.system,
+      darkTheme: AppTheme.light(),
+      themeMode: ThemeMode.light,
       home: const _AuthGate(),
     );
   }
@@ -87,6 +87,35 @@ class _SplashLoading extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    return Scaffold(
+      backgroundColor: const Color(0xFFFFF8F0),
+      body: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Image.asset(
+              'assets/icon.png',
+              height: 96,
+              width: 96,
+              fit: BoxFit.contain,
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              'BookNest',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF1A2730),
+                letterSpacing: 1.2,
+              ),
+            ),
+            const SizedBox(height: 24),
+            const CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation(Color(0xFFD2691E)),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

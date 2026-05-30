@@ -97,6 +97,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'community_new_forum_fab',
         onPressed: _showCreateForumDialog,
         icon: const Icon(Icons.edit, color: Colors.white),
         label: const Text('New Forum', style: TextStyle(color: Colors.white)),

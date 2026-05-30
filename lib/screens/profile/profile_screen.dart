@@ -461,10 +461,27 @@ class _ProfileScreenState extends State<ProfileScreen>
     return Column(
       children: [
         const SizedBox(height: 16),
-        Icon(
-          Icons.menu_book,
-          size: 48,
-          color: Theme.of(context).colorScheme.primary,
+        Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: Colors.white,
+            boxShadow: [
+              BoxShadow(
+                color: Theme.of(
+                  context,
+                ).colorScheme.primary.withValues(alpha: 0.18),
+                blurRadius: 18,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Image.asset(
+            'assets/icon.png',
+            height: 64,
+            width: 64,
+            fit: BoxFit.contain,
+          ),
         ),
         const SizedBox(height: 12),
         const Text(
@@ -590,70 +607,90 @@ class _ProfileScreenState extends State<ProfileScreen>
         .collection('users')
         .doc(user.uid)
         .get();
-    final data = doc.data() ?? {};
-    final usernameController = TextEditingController(
-      text: (data['username'] as String?) ?? user.displayName ?? '',
-    );
+    final initialUsername =
+        (doc.data()?['username'] as String?) ?? user.displayName ?? '';
 
-    if (!context.mounted) {
-      usernameController.dispose();
-      return;
-    }
+    if (!context.mounted) return;
 
     await showDialog<void>(
       context: context,
-      builder: (dialogContext) {
-        var saving = false;
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return AlertDialog(
-              title: const Text('Edit Profile'),
-              content: TextField(
-                controller: usernameController,
-                decoration: const InputDecoration(labelText: 'Username'),
-                textInputAction: TextInputAction.done,
-              ),
-              actions: [
-                TextButton(
-                  onPressed: saving ? null : () => Navigator.pop(dialogContext),
-                  child: const Text('Cancel'),
-                ),
-                FilledButton(
-                  onPressed: saving
-                      ? null
-                      : () async {
-                          final username = usernameController.text.trim();
-                          if (username.isEmpty) {
-                            return;
-                          }
-                          setState(() => saving = true);
-                          await FirebaseFirestore.instance
-                              .collection('users')
-                              .doc(user.uid)
-                              .set({
-                                'username': username,
-                                'updated_at': Timestamp.now(),
-                              }, SetOptions(merge: true));
-                          await user.updateDisplayName(username);
-                          if (dialogContext.mounted) {
-                            Navigator.pop(dialogContext);
-                          }
-                        },
-                  child: saving
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Text('Save'),
-                ),
-              ],
-            );
-          },
-        );
-      },
+      builder: (dialogContext) =>
+          _EditProfileDialog(user: user, initialUsername: initialUsername),
     );
+  }
+}
 
-    usernameController.dispose();
+class _EditProfileDialog extends StatefulWidget {
+  const _EditProfileDialog({required this.user, required this.initialUsername});
+
+  final User user;
+  final String initialUsername;
+
+  @override
+  State<_EditProfileDialog> createState() => _EditProfileDialogState();
+}
+
+class _EditProfileDialogState extends State<_EditProfileDialog> {
+  late final TextEditingController _usernameController;
+  bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _usernameController = TextEditingController(text: widget.initialUsername);
+  }
+
+  @override
+  void dispose() {
+    _usernameController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    final username = _usernameController.text.trim();
+    if (username.isEmpty) return;
+    setState(() => _saving = true);
+    try {
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(widget.user.uid)
+          .set({
+            'username': username,
+            'updated_at': Timestamp.now(),
+          }, SetOptions(merge: true));
+      await widget.user.updateDisplayName(username);
+      if (mounted) Navigator.pop(context);
+    } catch (_) {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Edit Profile'),
+      content: TextField(
+        controller: _usernameController,
+        decoration: const InputDecoration(labelText: 'Username'),
+        textInputAction: TextInputAction.done,
+        onSubmitted: (_) => _saving ? null : _save(),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _saving ? null : () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: _saving ? null : _save,
+          child: _saving
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Text('Save'),
+        ),
+      ],
+    );
   }
 }
